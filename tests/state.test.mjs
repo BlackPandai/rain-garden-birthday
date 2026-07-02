@@ -1,0 +1,201 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import {
+  SCENE_ORDER,
+  createInitialState,
+  applyChoice,
+  completeScene,
+  chooseEnding,
+  unlockEnding,
+  getClearGiftHint,
+  nextHintLevel,
+  saveState,
+  loadState,
+  resetState,
+  startReplayAtScene,
+} from "../src/state.js";
+
+function createMemoryStorage() {
+  const store = new Map();
+
+  return {
+    getItem(key) {
+      return store.has(key) ? store.get(key) : null;
+    },
+    setItem(key, value) {
+      store.set(key, value);
+    },
+    removeItem(key) {
+      store.delete(key);
+    },
+  };
+}
+
+test("applyChoice adds hidden imprint score", () => {
+  const state = createInitialState();
+  const next = applyChoice(state, { oldMemory: 2, companionship: 0, future: 1 });
+
+  assert.deepEqual(next.imprints, {
+    oldMemory: 2,
+    companionship: 0,
+    future: 1,
+  });
+  assert.deepEqual(state.imprints, {
+    oldMemory: 0,
+    companionship: 0,
+    future: 0,
+  });
+});
+
+test("chooseEnding picks highest imprint", () => {
+  const state = {
+    ...createInitialState(),
+    imprints: { oldMemory: 1, companionship: 4, future: 2 },
+  };
+
+  assert.equal(chooseEnding(state), "companionship");
+});
+
+test("chooseEnding uses final preference to break a tie", () => {
+  const state = {
+    ...createInitialState(),
+    imprints: { oldMemory: 3, companionship: 3, future: 1 },
+    finalPreference: "oldMemory",
+  };
+
+  assert.equal(chooseEnding(state), "oldMemory");
+});
+
+test("chooseEnding falls back to future when still tied", () => {
+  const state = {
+    ...createInitialState(),
+    imprints: { oldMemory: 2, companionship: 2, future: 2 },
+  };
+
+  assert.equal(chooseEnding(state), "future");
+});
+
+test("unlockEnding records ending and unlocks return after first ending", () => {
+  const state = unlockEnding(createInitialState(), "future");
+
+  assert.deepEqual(state.unlockedEndings, ["future"]);
+  assert.equal(state.canReturnToGarden, true);
+});
+
+test("completeScene advances from entrance to courtyard and records final preference", () => {
+  const state = completeScene(createInitialState(), "entrance", "companionship");
+
+  assert.equal(state.currentSceneId, "courtyard-pond");
+  assert.equal(state.finalPreference, "companionship");
+  assert.deepEqual(state.completedScenes, ["entrance"]);
+});
+
+test("scene route visits courtyard immediately after entrance", () => {
+  assert.deepEqual(SCENE_ORDER, ["entrance", "courtyard-pond", "living-room", "window", "bedroom"]);
+});
+
+test("getClearGiftHint returns explicit fallback copy", () => {
+  assert.equal(
+    getClearGiftHint("future"),
+    "去庭院或池塘边找防水小卡片、二维码或信封；它会指向机票、旅行基金或红包口令。"
+  );
+});
+
+test("nextHintLevel increments from zero and caps at three for a scene", () => {
+  const firstHint = nextHintLevel(createInitialState(), "entrance");
+  const secondHint = nextHintLevel(firstHint, "entrance");
+  const thirdHint = nextHintLevel(secondHint, "entrance");
+  const cappedHint = nextHintLevel(thirdHint, "entrance");
+
+  assert.equal(firstHint.hintLevelByScene.entrance, 1);
+  assert.equal(cappedHint.hintLevelByScene.entrance, 3);
+});
+
+test("saveState writes JSON to injected storage and loadState returns it", () => {
+  const storage = createMemoryStorage();
+  const state = {
+    ...createInitialState(),
+    currentSceneId: "window",
+    imprints: { oldMemory: 2, companionship: 1, future: 3 },
+  };
+
+  saveState(state, storage);
+
+  assert.equal(storage.getItem("rain-garden-birthday-state"), JSON.stringify(state));
+  assert.deepEqual(loadState(storage), state);
+});
+
+test("resetState removes saved state and returns initial state", () => {
+  const storage = createMemoryStorage();
+  const state = {
+    ...createInitialState(),
+    currentSceneId: "bedroom",
+  };
+  saveState(state, storage);
+
+  const reset = resetState(storage);
+
+  assert.equal(storage.getItem("rain-garden-birthday-state"), null);
+  assert.deepEqual(reset, createInitialState());
+});
+
+test("startReplayAtScene jumps to a chapter while preserving discovered endings", () => {
+  const state = {
+    ...createInitialState(),
+    currentSceneId: "bedroom",
+    completedScenes: ["entrance", "living-room", "window", "courtyard-pond", "bedroom"],
+    imprints: { oldMemory: 2, companionship: 1, future: 5 },
+    finalPreference: "future",
+    unlockedEndings: ["future"],
+    canReturnToGarden: true,
+    hintLevelByScene: { bedroom: 2 },
+  };
+
+  assert.deepEqual(startReplayAtScene(state, "window"), {
+    ...state,
+    currentSceneId: "window",
+    completedScenes: [],
+    imprints: { oldMemory: 0, companionship: 0, future: 0 },
+    finalPreference: null,
+    hintLevelByScene: {},
+  });
+});
+
+import { scenes, endings } from "../src/content.js";
+
+test("content defines all route scenes", () => {
+  assert.deepEqual(
+    scenes.map((scene) => scene.id).sort(),
+    [...SCENE_ORDER].sort()
+  );
+});
+
+test("each scene has choices and layered moyu hints", () => {
+  for (const scene of scenes) {
+    assert.ok(scene.title);
+    assert.ok(scene.body);
+    assert.ok(scene.choices.length >= 1);
+    assert.equal(scene.hints.length, 3);
+  }
+});
+
+test("content defines three gift endings", () => {
+  assert.deepEqual(Object.keys(endings).sort(), ["companionship", "future", "oldMemory"]);
+});
+
+test("desktop scene UI does not render horizontal view controls", () => {
+  const appSource = readFileSync(new URL("../src/app.js", import.meta.url), "utf8");
+  const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+  assert.equal(appSource.includes("view-control"), false);
+  assert.equal(appSource.includes("view-dots"), false);
+  assert.match(styles, /background-size:\s*cover/);
+});
+
+test("scene UI does not render moyu hint button", () => {
+  const appSource = readFileSync(new URL("../src/app.js", import.meta.url), "utf8");
+
+  assert.equal(appSource.includes("让摸鱼提示一下"), false);
+  assert.equal(appSource.includes('data-action="hint"'), false);
+});
