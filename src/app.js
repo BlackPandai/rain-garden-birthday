@@ -14,8 +14,10 @@ const app = document.querySelector("#app");
 let state = loadState();
 let hasStarted = false;
 let inspectedChoice = null;
+let suppressNextClick = false;
 
 const IMAGE_RATIO = 819 / 546;
+const MOBILE_PAN_QUERY = "(max-width: 700px)";
 
 const sceneImages = {
   entrance: "./assets/rain-garden-entrance.png",
@@ -29,31 +31,34 @@ const moyuImage = "./assets/moyu-brown-cocker-dog-transparent.png";
 
 const hotspotPoints = {
   entrance: {
-    "umbrella-charm": { x: 80, y: 58 },
-    "paw-prints": { x: 58, y: 74 },
-    "rain-card": { x: 60, y: 52 },
+    "umbrella-charm": { x: 80, y: 69 },
+    "paw-prints": { x: 58, y: 82 },
+    "rain-card": { x: 60, y: 51 },
   },
   "living-room": {
-    "photo-frame": { x: 54, y: 52 },
-    "moyu-bed": { x: 34, y: 71 },
-    "lamp-direction": { x: 68, y: 45 },
+    "photo-frame": { x: 56, y: 50 },
+    "moyu-bed": { x: 34, y: 75 },
+    "lamp-direction": { x: 67, y: 43 },
   },
   window: {
-    "inside-photo": { x: 27, y: 68 },
-    "moyu-tail": { x: 30, y: 78 },
-    "outside-light": { x: 71, y: 41 },
+    "inside-photo": { x: 27, y: 70 },
+    "moyu-tail": { x: 31, y: 77 },
+    "outside-light": { x: 70, y: 40 },
   },
   "courtyard-pond": {
-    "courtyard-lantern": { x: 18, y: 34 },
+    "courtyard-lantern": { x: 17, y: 36 },
     "courtyard-bridge": { x: 66, y: 62 },
-    "courtyard-moon": { x: 61, y: 15 },
+    "courtyard-moon": { x: 61, y: 16 },
   },
   bedroom: {
-    "to-memory": { x: 11, y: 64 },
-    "to-together": { x: 76, y: 55 },
-    "to-future": { x: 84, y: 67 },
+    "to-memory": { x: 10, y: 70 },
+    "to-together": { x: 74, y: 53 },
+    "to-future": { x: 85, y: 69 },
   },
 };
+
+const panByScene = Object.fromEntries(scenes.map((scene) => [scene.id, 0.5]));
+let dragState = null;
 
 function getCurrentScene() {
   return scenes.find((scene) => scene.id === state.currentSceneId) ?? scenes[0];
@@ -64,6 +69,19 @@ function setState(nextState) {
   inspectedChoice = null;
   saveState(state);
   render();
+}
+
+function isMobilePanEnabled() {
+  return window.matchMedia(MOBILE_PAN_QUERY).matches;
+}
+
+function getScenePan(sceneId) {
+  return panByScene[sceneId] ?? 0.5;
+}
+
+function setScenePan(sceneId, pan) {
+  panByScene[sceneId] = Math.max(0, Math.min(1, pan));
+  syncSceneLayout();
 }
 
 function render() {
@@ -103,7 +121,7 @@ function renderScene(scene) {
     : scene.body;
 
   app.innerHTML = `
-    <section class="screen point-click point-click--${scene.id}" style="--scene-image: url('${sceneImages[scene.id]}');">
+    <section class="screen point-click point-click--${scene.id}" data-scene-id="${scene.id}" style="--scene-image: url('${sceneImages[scene.id]}');">
       <div class="painted-scene" aria-hidden="true"></div>
       <div class="scene-vignette" aria-hidden="true"></div>
       ${renderHotspots(scene)}
@@ -118,6 +136,8 @@ function renderScene(scene) {
       </article>
     </section>
   `;
+
+  requestAnimationFrame(syncSceneLayout);
 }
 
 function renderHotspots(scene) {
@@ -130,17 +150,13 @@ function renderHotspots(scene) {
         return "";
       }
 
-      const position = getHotspotPosition(point);
-      if (!position.visible) {
-        return "";
-      }
-
       return `
         <button
           class="scene-hotspot"
           type="button"
           data-choice-id="${choice.id}"
-          style="left: ${position.left}px; top: ${position.top}px;"
+          data-x="${point.x}"
+          data-y="${point.y}"
           aria-label="${choice.label}"
         >
           <span></span>
@@ -151,18 +167,52 @@ function renderHotspots(scene) {
     .join("");
 }
 
-function getHotspotPosition(point) {
+function syncSceneLayout() {
+  const stage = app.querySelector(".point-click");
+  if (!stage) {
+    return;
+  }
+
+  const sceneId = stage.dataset.sceneId;
+  const pan = getScenePan(sceneId);
+  stage.style.setProperty("--pan-x", `${pan * 100}%`);
+
+  for (const hotspot of stage.querySelectorAll(".scene-hotspot")) {
+    const position = getHotspotPosition({
+      x: Number(hotspot.dataset.x),
+      y: Number(hotspot.dataset.y),
+    }, pan);
+
+    hotspot.style.left = `${position.left}px`;
+    hotspot.style.top = `${position.top}px`;
+    hotspot.hidden = !position.visible;
+  }
+}
+
+function getHotspotPosition(point, pan) {
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
-  const imageRatio = IMAGE_RATIO;
-  const viewportRatio = viewportWidth / viewportHeight;
-  const imageWidth = viewportRatio > imageRatio ? viewportWidth : viewportHeight * imageRatio;
-  const imageHeight = viewportRatio > imageRatio ? viewportWidth / imageRatio : viewportHeight;
-  const offsetX = (viewportWidth - imageWidth) / 2;
-  const offsetY = (viewportHeight - imageHeight) / 2;
+  let imageWidth;
+  let imageHeight;
+  let offsetX;
+  let offsetY;
+
+  if (isMobilePanEnabled()) {
+    imageHeight = viewportHeight;
+    imageWidth = viewportHeight * IMAGE_RATIO;
+    offsetX = (viewportWidth - imageWidth) * pan;
+    offsetY = 0;
+  } else {
+    const viewportRatio = viewportWidth / viewportHeight;
+    imageWidth = viewportRatio > IMAGE_RATIO ? viewportWidth : viewportHeight * IMAGE_RATIO;
+    imageHeight = viewportRatio > IMAGE_RATIO ? viewportWidth / IMAGE_RATIO : viewportHeight;
+    offsetX = (viewportWidth - imageWidth) / 2;
+    offsetY = (viewportHeight - imageHeight) / 2;
+  }
+
   const left = offsetX + imageWidth * (point.x / 100);
   const rawTop = offsetY + imageHeight * (point.y / 100);
-  const top = Math.max(72, Math.min(rawTop, viewportHeight - 150));
+  const top = Math.max(56, Math.min(rawTop, viewportHeight - 56));
 
   return {
     left: Math.round(left),
@@ -209,7 +259,60 @@ function renderEnding() {
   `;
 }
 
+app.addEventListener("pointerdown", (event) => {
+  const stage = event.target.closest(".point-click[data-scene-id]");
+  if (!stage || event.target.closest("button") || !isMobilePanEnabled()) {
+    return;
+  }
+
+  const sceneId = stage.dataset.sceneId;
+  dragState = {
+    pointerId: event.pointerId,
+    sceneId,
+    startX: event.clientX,
+    startPan: getScenePan(sceneId),
+    moved: false,
+  };
+  stage.classList.add("is-panning");
+  stage.setPointerCapture(event.pointerId);
+});
+
+app.addEventListener("pointermove", (event) => {
+  if (!dragState || event.pointerId !== dragState.pointerId) {
+    return;
+  }
+
+  const viewportWidth = window.innerWidth;
+  const imageWidth = window.innerHeight * IMAGE_RATIO;
+  const maxOffset = Math.max(1, imageWidth - viewportWidth);
+  const deltaX = event.clientX - dragState.startX;
+
+  if (Math.abs(deltaX) > 6) {
+    dragState.moved = true;
+    suppressNextClick = true;
+  }
+
+  setScenePan(dragState.sceneId, dragState.startPan - deltaX / maxOffset);
+});
+
+function endDrag(event) {
+  if (!dragState || event.pointerId !== dragState.pointerId) {
+    return;
+  }
+
+  app.querySelector(".point-click")?.classList.remove("is-panning");
+  dragState = null;
+}
+
+app.addEventListener("pointerup", endDrag);
+app.addEventListener("pointercancel", endDrag);
+
 app.addEventListener("click", (event) => {
+  if (suppressNextClick) {
+    suppressNextClick = false;
+    return;
+  }
+
   const choiceButton = event.target.closest("[data-choice-id]");
   const actionButton = event.target.closest("[data-action]");
 
@@ -275,7 +378,7 @@ app.addEventListener("click", (event) => {
 
 window.addEventListener("resize", () => {
   if (hasStarted) {
-    render();
+    syncSceneLayout();
   }
 });
 

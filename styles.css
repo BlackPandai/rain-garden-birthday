@@ -56,6 +56,10 @@ button {
   background-size: cover;
 }
 
+.point-click.is-panning .painted-scene {
+  transition: none;
+}
+
 .intro-screen .painted-scene {
   background-position: center;
 }
@@ -100,6 +104,11 @@ button {
 }
 
 .dialog--compact {
+  top: 0.75rem;
+  right: auto;
+  bottom: auto;
+  width: min(22rem, calc(100vw - 1.5rem));
+  max-width: 22rem;
   grid-template-columns: 3.15rem 1fr;
   gap: 0.65rem;
   align-items: center;
@@ -142,6 +151,10 @@ button {
   min-height: 2rem;
   padding: 0.42rem 0.7rem;
   font-size: 0.82rem;
+}
+
+.dialog--compact.card::after {
+  display: none;
 }
 
 .dialog-copy {
@@ -317,6 +330,29 @@ p {
     height: 4.8rem;
   }
 
+}
+
+@media (max-width: 700px) {
+  .point-click {
+    touch-action: pan-y;
+    user-select: none;
+  }
+
+  .painted-scene {
+    background-position: var(--pan-x, 50%) center;
+    background-size: auto 100%;
+    transition: background-position 160ms ease-out;
+  }
+
+  .scene-hotspot {
+    transition:
+      left 160ms ease-out,
+      top 160ms ease-out;
+  }
+
+  .point-click.is-panning .scene-hotspot {
+    transition: none;
+  }
 }
 
 .screen::before {

@@ -199,3 +199,15 @@ test("scene UI does not render moyu hint button", () => {
   assert.equal(appSource.includes("让摸鱼提示一下"), false);
   assert.equal(appSource.includes('data-action="hint"'), false);
 });
+
+test("mobile scene UI supports smooth swipe panning without buttons", () => {
+  const appSource = readFileSync(new URL("../src/app.js", import.meta.url), "utf8");
+  const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+  assert.match(appSource, /pointerdown/);
+  assert.match(appSource, /pointermove/);
+  assert.match(appSource, /--pan-x/);
+  assert.match(styles, /@media\s*\(max-width:\s*700px\)/);
+  assert.match(styles, /background-size:\s*auto 100%/);
+  assert.match(styles, /transition:\s*background-position/);
+});
