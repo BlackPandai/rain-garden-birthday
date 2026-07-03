@@ -4,7 +4,9 @@ import {
   completeScene,
   createInitialState,
   loadState,
+  rememberSceneChoice,
   saveState,
+  shouldShowChoice,
   unlockEnding,
 } from "./state.js";
 import { endings, scenes } from "./content.js";
@@ -20,6 +22,7 @@ let isBoxGateOpen = false;
 const IMAGE_RATIO = 819 / 546;
 const MOBILE_PAN_QUERY = "(max-width: 700px)";
 const BOX_CODE = "07070522";
+const GIFT_OPENING_DURATION_MS = 1400;
 
 const sceneImages = {
   entrance: "./assets/rain-garden-entrance.png",
@@ -151,6 +154,7 @@ function renderHotspots(scene) {
   const points = hotspotPoints[scene.id] ?? {};
 
   return scene.choices
+    .filter((choice) => shouldShowChoice(state, scene.id, choice.id))
     .map((choice) => {
       const point = points[choice.id];
       if (!point) {
@@ -308,6 +312,25 @@ function renderBoxGate() {
   requestAnimationFrame(() => document.querySelector("#box-code")?.focus());
 }
 
+function renderGiftOpening() {
+  app.innerHTML = `
+    <section class="screen point-click gift-opening" style="--scene-image: url('${sceneImages.bedroom}');">
+      <div class="painted-scene ending-scene" aria-hidden="true"></div>
+      <div class="scene-vignette" aria-hidden="true"></div>
+      <div class="gift-opening-stage" aria-live="polite">
+        <div class="gift-opening-glow" aria-hidden="true"></div>
+        <div class="gift-opening-box" aria-hidden="true">
+          <div class="gift-opening-lid"></div>
+          <div class="gift-opening-ribbon gift-opening-ribbon--vertical"></div>
+          <div class="gift-opening-ribbon gift-opening-ribbon--horizontal"></div>
+          <div class="gift-opening-base"></div>
+        </div>
+        <p>小木盒轻轻打开，雨声也亮了一下。</p>
+      </div>
+    </section>
+  `;
+}
+
 app.addEventListener("pointerdown", (event) => {
   const stage = event.target.closest(".point-click[data-scene-id]");
   if (!stage || event.target.closest("button") || !isMobilePanEnabled()) {
@@ -394,7 +417,11 @@ app.addEventListener("click", (event) => {
 
   if (action === "continue-scene" && inspectedChoice) {
     const scene = getCurrentScene();
-    const withChoice = applyChoice(state, inspectedChoice.weights);
+    const withChoice = rememberSceneChoice(
+      applyChoice(state, inspectedChoice.weights),
+      scene.id,
+      inspectedChoice.id
+    );
     const finalPreference =
       scene.id === "bedroom" ? Object.keys(inspectedChoice.weights)[0] : scene.finalPreference;
 
@@ -417,11 +444,16 @@ app.addEventListener("click", (event) => {
 
     if (value === BOX_CODE) {
       isBoxGateOpen = false;
-      setState(completeScene({
+      state = {
         ...state,
         boxUnlocked: true,
         passwordAttempts: 0,
-      }, "bedroom", state.finalPreference));
+      };
+      saveState(state);
+      renderGiftOpening();
+      window.setTimeout(() => {
+        setState(completeScene(state, "bedroom", state.finalPreference));
+      }, GIFT_OPENING_DURATION_MS);
       return;
     }
 

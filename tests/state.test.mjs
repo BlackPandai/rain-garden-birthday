@@ -14,6 +14,8 @@ import {
   loadState,
   resetState,
   startReplayAtScene,
+  rememberSceneChoice,
+  shouldShowChoice,
 } from "../src/state.js";
 
 function createMemoryStorage() {
@@ -169,6 +171,36 @@ test("startReplayAtScene jumps to a chapter while preserving discovered endings"
   });
 });
 
+test("bedroom hides the hotspot for an already unlocked ending", () => {
+  const state = {
+    ...createInitialState(),
+    unlockedEndings: ["future"],
+  };
+
+  assert.equal(shouldShowChoice(state, "bedroom", "to-future"), false);
+  assert.equal(shouldShowChoice(state, "bedroom", "to-memory"), true);
+  assert.equal(shouldShowChoice(state, "bedroom", "to-together"), true);
+  assert.equal(shouldShowChoice(state, "courtyard-pond", "courtyard-lantern"), true);
+});
+
+test("garden room and window hide previously chosen hotspots only after an ending", () => {
+  const beforeEnding = rememberSceneChoice(createInitialState(), "courtyard-pond", "courtyard-lantern");
+  const afterEnding = unlockEnding(beforeEnding, "future");
+
+  assert.equal(shouldShowChoice(beforeEnding, "courtyard-pond", "courtyard-lantern"), true);
+  assert.equal(shouldShowChoice(afterEnding, "courtyard-pond", "courtyard-lantern"), false);
+  assert.equal(shouldShowChoice(afterEnding, "courtyard-pond", "courtyard-bridge"), true);
+});
+
+test("restart clears remembered hotspot choices", () => {
+  const state = rememberSceneChoice(createInitialState(), "living-room", "moyu-bed");
+
+  assert.deepEqual(state.selectedChoiceIdsByScene, {
+    "living-room": ["moyu-bed"],
+  });
+  assert.deepEqual(createInitialState().selectedChoiceIdsByScene, {});
+});
+
 import { scenes, endings } from "../src/content.js";
 
 test("content defines all route scenes", () => {
@@ -246,4 +278,16 @@ test("main scene completion copy carries the four required digit clues", () => {
       assert.match(scene.completionText, new RegExp(snippet));
     }
   }
+});
+
+test("correct final code plays gift opening animation before the ending", () => {
+  const appSource = readFileSync(new URL("../src/app.js", import.meta.url), "utf8");
+  const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+  assert.match(appSource, /renderGiftOpening/);
+  assert.match(appSource, /GIFT_OPENING_DURATION_MS/);
+  assert.match(appSource, /gift-opening/);
+  assert.match(appSource, /setTimeout/);
+  assert.match(styles, /@keyframes\s+gift-lid-open/);
+  assert.match(styles, /@keyframes\s+gift-glow-bloom/);
 });

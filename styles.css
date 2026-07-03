@@ -332,6 +332,142 @@ p {
   background: rgba(216, 193, 143, 0.16);
 }
 
+.gift-opening-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  text-align: center;
+}
+
+.gift-opening-stage p {
+  position: absolute;
+  top: calc(50% + 7rem);
+  width: min(20rem, calc(100vw - 3rem));
+  color: var(--accent-strong);
+  text-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.65);
+  animation: gift-text-rise 900ms ease-out 520ms both;
+}
+
+.gift-opening-glow {
+  position: absolute;
+  width: 16rem;
+  height: 16rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 238, 168, 0.78) 0 16%, rgba(240, 217, 157, 0.32) 38%, transparent 70%);
+  filter: blur(0.2rem);
+  transform: scale(0.25);
+  animation: gift-glow-bloom 1300ms ease-out both;
+}
+
+.gift-opening-box {
+  position: relative;
+  width: 9rem;
+  height: 7rem;
+  transform: translateY(-1rem);
+  animation: gift-box-pop 520ms cubic-bezier(0.2, 1.4, 0.36, 1) both;
+}
+
+.gift-opening-base,
+.gift-opening-lid {
+  position: absolute;
+  left: 50%;
+  width: 8.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  background: linear-gradient(135deg, rgba(248, 232, 177, 0.98), rgba(172, 118, 63, 0.96));
+  box-shadow: 0 1.1rem 2.2rem rgba(0, 0, 0, 0.38);
+}
+
+.gift-opening-base {
+  bottom: 0;
+  height: 5rem;
+  border-radius: 0.8rem 0.8rem 1rem 1rem;
+  transform: translateX(-50%);
+}
+
+.gift-opening-lid {
+  top: 0.2rem;
+  z-index: 2;
+  height: 2rem;
+  border-radius: 0.9rem 0.9rem 0.45rem 0.45rem;
+  transform: translateX(-50%);
+  transform-origin: 50% 100%;
+  animation: gift-lid-open 1050ms cubic-bezier(0.2, 0.85, 0.2, 1) 250ms both;
+}
+
+.gift-opening-ribbon {
+  position: absolute;
+  z-index: 3;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(107, 46, 38, 0.98), rgba(174, 78, 62, 0.98));
+  box-shadow: inset 0 0.1rem 0.35rem rgba(255, 255, 255, 0.2);
+}
+
+.gift-opening-ribbon--vertical {
+  left: calc(50% - 0.45rem);
+  bottom: 0.05rem;
+  width: 0.9rem;
+  height: 6.9rem;
+}
+
+.gift-opening-ribbon--horizontal {
+  left: calc(50% - 4.3rem);
+  bottom: 2.25rem;
+  width: 8.6rem;
+  height: 0.9rem;
+}
+
+@keyframes gift-box-pop {
+  from {
+    opacity: 0;
+    transform: translateY(1rem) scale(0.82);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-1rem) scale(1);
+  }
+}
+
+@keyframes gift-lid-open {
+  0% {
+    transform: translateX(-50%) translateY(0) rotate(0deg);
+  }
+  52% {
+    transform: translateX(-50%) translateY(-2.7rem) rotate(-8deg);
+  }
+  100% {
+    transform: translateX(-50%) translateY(-4.4rem) rotate(-18deg);
+  }
+}
+
+@keyframes gift-glow-bloom {
+  0% {
+    opacity: 0;
+    transform: scale(0.22);
+  }
+  42% {
+    opacity: 1;
+    transform: scale(0.82);
+  }
+  100% {
+    opacity: 0.66;
+    transform: scale(1.35);
+  }
+}
+
+@keyframes gift-text-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.6rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 430px) {
   .dialog {
     grid-template-columns: 4.2rem 1fr;

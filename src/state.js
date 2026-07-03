@@ -6,6 +6,14 @@ export const GIFT_HINTS = {
   future: "去庭院或池塘边找防水小卡片、二维码或信封；它会指向机票、旅行基金或红包口令。",
 };
 
+export const BEDROOM_CHOICE_BY_ENDING = {
+  oldMemory: "to-memory",
+  companionship: "to-together",
+  future: "to-future",
+};
+
+const REPLAY_HIDDEN_CHOICE_SCENES = new Set(["courtyard-pond", "living-room", "window"]);
+
 export function createInitialState() {
   return {
     currentSceneId: "entrance",
@@ -20,6 +28,7 @@ export function createInitialState() {
     canReturnToGarden: false,
     boxUnlocked: false,
     passwordAttempts: 0,
+    selectedChoiceIdsByScene: {},
     hintLevelByScene: {},
   };
 }
@@ -110,6 +119,35 @@ export function startReplayAtScene(state, sceneId) {
     finalPreference: null,
     hintLevelByScene: {},
   };
+}
+
+export function rememberSceneChoice(state, sceneId, choiceId) {
+  const selectedChoiceIdsByScene = state.selectedChoiceIdsByScene ?? {};
+  const sceneChoiceIds = selectedChoiceIdsByScene[sceneId] ?? [];
+
+  if (sceneChoiceIds.includes(choiceId)) {
+    return state;
+  }
+
+  return {
+    ...state,
+    selectedChoiceIdsByScene: {
+      ...selectedChoiceIdsByScene,
+      [sceneId]: [...sceneChoiceIds, choiceId],
+    },
+  };
+}
+
+export function shouldShowChoice(state, sceneId, choiceId) {
+  if (sceneId !== "bedroom") {
+    if (!state.canReturnToGarden || !REPLAY_HIDDEN_CHOICE_SCENES.has(sceneId)) {
+      return true;
+    }
+
+    return !(state.selectedChoiceIdsByScene?.[sceneId] ?? []).includes(choiceId);
+  }
+
+  return !state.unlockedEndings.some((endingId) => BEDROOM_CHOICE_BY_ENDING[endingId] === choiceId);
 }
 
 export function saveState(state, storage = window.localStorage) {
