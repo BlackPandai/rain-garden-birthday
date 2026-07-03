@@ -25,7 +25,8 @@ export const scenes = [
         weights: { future: 2 },
       },
     ],
-    completionText: "摸鱼轻轻叫了一声，先带你走向雨里的庭院。",
+    completionText:
+      "雨从门外退了一步，铜环轻轻晃着，像把两个很浅的痕迹留在门边：一个圆，一个七字折角。摸鱼轻轻叫了一声，先带你走向雨里的庭院。",
     finalPreference: "companionship",
     hints: [
       "摸鱼低头闻了闻门垫。",
@@ -59,7 +60,8 @@ export const scenes = [
         weights: { future: 1, companionship: 1 },
       },
     ],
-    completionText: "影子终于拼成一句悄悄话。",
+    completionText:
+      "小窝边的纸角露出半行旧字，前面像五月的开头，后面被暖灯照得很轻。影子终于拼成一句悄悄话。",
     finalPreference: "companionship",
     hints: [
       "摸鱼趴到自己的小窝边。",
@@ -93,7 +95,8 @@ export const scenes = [
         weights: { future: 3 },
       },
     ],
-    completionText: "花窗上的雨痕连成顺序，指向庭院和池塘。",
+    completionText:
+      "信封被雨气压弯了一点，边缘上两个相同的小数挨在一起，像一双并排的爪印。花窗上的雨痕连成顺序，指向庭院和池塘。",
     finalPreference: "future",
     hints: [
       "摸鱼一直盯着桌角。",
@@ -127,7 +130,8 @@ export const scenes = [
         weights: { oldMemory: 2 },
       },
     ],
-    completionText: "池边的线索被点亮，摸鱼又回头望向屋里的暖光。",
+    completionText:
+      "水里的月亮又亮了一次，和天上的那枚遥遥相对。摸鱼看了看你，像是在提醒：有些痕迹会出现两遍。",
     finalPreference: "future",
     hints: [
       "摸鱼停在第一块湿石头旁。",
@@ -161,7 +165,8 @@ export const scenes = [
         weights: { future: 2 },
       },
     ],
-    completionText: "原来这一整夜，都在等你慢慢发现。",
+    completionText:
+      "小木盒没有锁孔，只有八个空格。摸鱼把纸推近了一点：先是被等候的人，后是一路跟回家的小尾巴。",
     finalPreference: null,
     hints: [
       "摸鱼把最后一张卡片放到床边。",

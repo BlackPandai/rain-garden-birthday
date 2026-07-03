@@ -83,6 +83,13 @@ test("unlockEnding records ending and unlocks return after first ending", () => 
   assert.equal(state.canReturnToGarden, true);
 });
 
+test("initial state tracks unopened gift box", () => {
+  const state = createInitialState();
+
+  assert.equal(state.boxUnlocked, false);
+  assert.equal(state.passwordAttempts, 0);
+});
+
 test("completeScene advances from entrance to courtyard and records final preference", () => {
   const state = completeScene(createInitialState(), "entrance", "companionship");
 
@@ -210,4 +217,33 @@ test("mobile scene UI supports smooth swipe panning without buttons", () => {
   assert.match(styles, /@media\s*\(max-width:\s*700px\)/);
   assert.match(styles, /background-size:\s*auto 100%/);
   assert.match(styles, /transition:\s*background-position/);
+});
+
+test("final gift box requires unified eight digit clue without explicit ending count", () => {
+  const appSource = readFileSync(new URL("../src/app.js", import.meta.url), "utf8");
+
+  assert.match(appSource, /07070522/);
+  assert.match(appSource, /输入八位线索/);
+  assert.match(appSource, /data-action="submit-box-code"/);
+  assert.equal(appSource.includes("1 / 3"), false);
+  assert.equal(appSource.includes("/ 3"), false);
+  assert.equal(appSource.includes("隐藏结局"), false);
+});
+
+test("main scene completion copy carries the four required digit clues", () => {
+  const required = {
+    entrance: ["一个圆", "七字折角"],
+    "courtyard-pond": ["出现两遍"],
+    "living-room": ["五月的开头"],
+    window: ["两个相同的小数"],
+    bedroom: ["八个空格"],
+  };
+
+  for (const [sceneId, snippets] of Object.entries(required)) {
+    const scene = scenes.find((item) => item.id === sceneId);
+    assert.ok(scene, `missing scene ${sceneId}`);
+    for (const snippet of snippets) {
+      assert.match(scene.completionText, new RegExp(snippet));
+    }
+  }
 });

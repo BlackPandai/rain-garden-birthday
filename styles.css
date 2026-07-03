@@ -227,6 +227,34 @@ p {
   color: var(--text);
 }
 
+.box-code-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.65rem;
+  align-items: center;
+  margin-top: 0.75rem;
+}
+
+.box-code-input {
+  min-width: 0;
+  min-height: 3.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--accent-strong);
+  font: inherit;
+  font-size: 1.15rem;
+  letter-spacing: 0.18em;
+  text-align: center;
+  outline: none;
+}
+
+.box-code-input:focus {
+  border-color: rgba(240, 217, 157, 0.62);
+  box-shadow: 0 0 0 0.18rem rgba(240, 217, 157, 0.12);
+}
+
 .scene-hotspot {
   position: absolute;
   z-index: 6;

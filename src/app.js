@@ -15,9 +15,11 @@ let state = loadState();
 let hasStarted = false;
 let inspectedChoice = null;
 let suppressNextClick = false;
+let isBoxGateOpen = false;
 
 const IMAGE_RATIO = 819 / 546;
 const MOBILE_PAN_QUERY = "(max-width: 700px)";
+const BOX_CODE = "07070522";
 
 const sceneImages = {
   entrance: "./assets/rain-garden-entrance.png",
@@ -91,6 +93,11 @@ function render() {
   }
 
   const scene = getCurrentScene();
+
+  if (scene.id === "bedroom" && isBoxGateOpen && !state.boxUnlocked) {
+    renderBoxGate();
+    return;
+  }
 
   if (scene.id === "bedroom" && state.completedScenes.includes("bedroom")) {
     renderEnding();
@@ -231,8 +238,6 @@ function renderEnding() {
     saveState(state);
   }
 
-  const unlockedEndingCount = state.unlockedEndings.length;
-
   app.innerHTML = `
     <section class="screen point-click ending-screen" style="--scene-image: url('${sceneImages.bedroom}');">
       <div class="painted-scene ending-scene" aria-hidden="true">
@@ -240,7 +245,7 @@ function renderEnding() {
       </div>
       <div class="scene-vignette" aria-hidden="true"></div>
       <article class="card dialog">
-        <p class="eyebrow">已找到 ${unlockedEndingCount} / 3 份心意</p>
+        <p class="eyebrow">雨声轻了一些</p>
         <img class="moyu-avatar" src="${moyuImage}" alt="摸鱼" />
         <div class="dialog-copy">
           <span class="ending-badge">${ending.badge}</span>
@@ -250,13 +255,57 @@ function renderEnding() {
           <p class="feedback" id="clear-hint"></p>
           <div class="actions">
             <button class="button" type="button" data-action="clear-ending-hint">让摸鱼说得更明白一点</button>
-            <button class="button secondary" type="button" data-action="return">回到庭院寻找隐藏结局</button>
+            <button class="button secondary" type="button" data-action="return">回到庭院，再听一会儿雨</button>
             <button class="button secondary" type="button" data-action="restart">从头开始</button>
           </div>
         </div>
       </article>
     </section>
   `;
+}
+
+function renderBoxGate() {
+  const attempt = state.passwordAttempts ?? 0;
+  const errorLines = [
+    "",
+    "木盒没有动，雨声像是漏掉了一拍。",
+    "摸鱼把纸往你手边推了推。也许不是所有数字都要带上。",
+    "摸鱼用爪子点了点纸上两处：一个属于窗里等的人，一个属于一路跟回家的小尾巴。",
+  ];
+  const feedback = errorLines[Math.min(attempt, errorLines.length - 1)];
+
+  app.innerHTML = `
+    <section class="screen point-click ending-screen" style="--scene-image: url('${sceneImages.bedroom}');">
+      <div class="painted-scene ending-scene" aria-hidden="true">
+        <div class="gift-card"><span>八</span></div>
+      </div>
+      <div class="scene-vignette" aria-hidden="true"></div>
+      <article class="card dialog">
+        <img class="moyu-avatar" src="${moyuImage}" alt="摸鱼" />
+        <div class="dialog-copy">
+          <p class="eyebrow">小木盒</p>
+          <h1>雨里的数字</h1>
+          <p>盒盖没有立刻打开，只从缝隙里漏出一点暖光。纸上留着几句残影：门边一枚，水里一枚，暖处一枚，窗边一双。</p>
+          <p class="moyu">输入八位线索</p>
+          <div class="box-code-row">
+            <input
+              class="box-code-input"
+              id="box-code"
+              inputmode="numeric"
+              autocomplete="off"
+              maxlength="8"
+              pattern="[0-9]*"
+              aria-label="输入八位线索"
+            />
+            <button class="button" type="button" data-action="submit-box-code">打开小木盒</button>
+          </div>
+          <p class="feedback" id="box-feedback">${feedback}</p>
+        </div>
+      </article>
+    </section>
+  `;
+
+  requestAnimationFrame(() => document.querySelector("#box-code")?.focus());
 }
 
 app.addEventListener("pointerdown", (event) => {
@@ -337,6 +386,7 @@ app.addEventListener("click", (event) => {
     state = createInitialState();
     saveState(state);
     inspectedChoice = null;
+    isBoxGateOpen = false;
     hasStarted = true;
     render();
     return;
@@ -347,7 +397,40 @@ app.addEventListener("click", (event) => {
     const withChoice = applyChoice(state, inspectedChoice.weights);
     const finalPreference =
       scene.id === "bedroom" ? Object.keys(inspectedChoice.weights)[0] : scene.finalPreference;
+
+    if (scene.id === "bedroom" && !state.boxUnlocked) {
+      isBoxGateOpen = true;
+      setState({
+        ...withChoice,
+        finalPreference,
+      });
+      return;
+    }
+
     setState(completeScene(withChoice, scene.id, finalPreference));
+    return;
+  }
+
+  if (action === "submit-box-code") {
+    const input = document.querySelector("#box-code");
+    const value = input?.value.trim() ?? "";
+
+    if (value === BOX_CODE) {
+      isBoxGateOpen = false;
+      setState(completeScene({
+        ...state,
+        boxUnlocked: true,
+        passwordAttempts: 0,
+      }, "bedroom", state.finalPreference));
+      return;
+    }
+
+    state = {
+      ...state,
+      passwordAttempts: (state.passwordAttempts ?? 0) + 1,
+    };
+    saveState(state);
+    renderBoxGate();
     return;
   }
 
@@ -359,6 +442,7 @@ app.addEventListener("click", (event) => {
 
   if (action === "return") {
     hasStarted = true;
+    isBoxGateOpen = false;
     setState({
       ...state,
       currentSceneId: "courtyard-pond",
@@ -372,6 +456,7 @@ app.addEventListener("click", (event) => {
 
   if (action === "restart") {
     hasStarted = false;
+    isBoxGateOpen = false;
     setState(createInitialState());
   }
 });

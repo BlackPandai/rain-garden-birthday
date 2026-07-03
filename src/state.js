@@ -18,6 +18,8 @@ export function createInitialState() {
     finalPreference: null,
     unlockedEndings: [],
     canReturnToGarden: false,
+    boxUnlocked: false,
+    passwordAttempts: 0,
     hintLevelByScene: {},
   };
 }
