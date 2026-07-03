@@ -291,3 +291,17 @@ test("correct final code plays gift opening animation before the ending", () => 
   assert.match(styles, /@keyframes\s+gift-lid-open/);
   assert.match(styles, /@keyframes\s+gift-glow-bloom/);
 });
+
+test("game includes generated rainy background music with a visible toggle", () => {
+  const appSource = readFileSync(new URL("../src/app.js", import.meta.url), "utf8");
+  const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+  assert.match(appSource, /AudioContext/);
+  assert.match(appSource, /startBackgroundMusic/);
+  assert.match(appSource, /createRainNoise/);
+  assert.match(appSource, /scheduleMusicLoop/);
+  assert.match(appSource, /data-action="toggle-music"/);
+  assert.match(appSource, /音乐/);
+  assert.match(styles, /\.music-toggle/);
+}
+);

@@ -18,11 +18,17 @@ let hasStarted = false;
 let inspectedChoice = null;
 let suppressNextClick = false;
 let isBoxGateOpen = false;
+let musicEnabled = true;
+let audioContext = null;
+let masterGain = null;
+let rainSource = null;
+let musicLoopId = null;
 
 const IMAGE_RATIO = 819 / 546;
 const MOBILE_PAN_QUERY = "(max-width: 700px)";
 const BOX_CODE = "07070522";
 const GIFT_OPENING_DURATION_MS = 1400;
+const MUSIC_VOLUME = 0.18;
 
 const sceneImages = {
   entrance: "./assets/rain-garden-entrance.png",
@@ -89,6 +95,14 @@ function setScenePan(sceneId, pan) {
   syncSceneLayout();
 }
 
+function renderMusicToggle() {
+  return `
+    <button class="music-toggle" type="button" data-action="toggle-music" aria-pressed="${musicEnabled}">
+      ${musicEnabled ? "音乐 开" : "音乐 关"}
+    </button>
+  `;
+}
+
 function render() {
   if (!hasStarted) {
     renderIntro();
@@ -134,6 +148,7 @@ function renderScene(scene) {
     <section class="screen point-click point-click--${scene.id}" data-scene-id="${scene.id}" style="--scene-image: url('${sceneImages[scene.id]}');">
       <div class="painted-scene" aria-hidden="true"></div>
       <div class="scene-vignette" aria-hidden="true"></div>
+      ${renderMusicToggle()}
       ${renderHotspots(scene)}
       <article class="card dialog ${inspectedChoice ? "dialog--expanded" : "dialog--compact"}">
         <img class="moyu-avatar" src="${moyuImage}" alt="摸鱼" />
@@ -248,6 +263,7 @@ function renderEnding() {
         <div class="gift-card"><span>${ending.badge}</span></div>
       </div>
       <div class="scene-vignette" aria-hidden="true"></div>
+      ${renderMusicToggle()}
       <article class="card dialog">
         <p class="eyebrow">雨声轻了一些</p>
         <img class="moyu-avatar" src="${moyuImage}" alt="摸鱼" />
@@ -284,6 +300,7 @@ function renderBoxGate() {
         <div class="gift-card"><span>八</span></div>
       </div>
       <div class="scene-vignette" aria-hidden="true"></div>
+      ${renderMusicToggle()}
       <article class="card dialog">
         <img class="moyu-avatar" src="${moyuImage}" alt="摸鱼" />
         <div class="dialog-copy">
@@ -317,6 +334,7 @@ function renderGiftOpening() {
     <section class="screen point-click gift-opening" style="--scene-image: url('${sceneImages.bedroom}');">
       <div class="painted-scene ending-scene" aria-hidden="true"></div>
       <div class="scene-vignette" aria-hidden="true"></div>
+      ${renderMusicToggle()}
       <div class="gift-opening-stage" aria-live="polite">
         <div class="gift-opening-glow" aria-hidden="true"></div>
         <div class="gift-opening-box" aria-hidden="true">
@@ -329,6 +347,114 @@ function renderGiftOpening() {
       </div>
     </section>
   `;
+}
+
+function getAudioContext() {
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) {
+    return null;
+  }
+
+  if (!audioContext) {
+    audioContext = new AudioContext();
+    masterGain = audioContext.createGain();
+    masterGain.gain.value = musicEnabled ? MUSIC_VOLUME : 0;
+    masterGain.connect(audioContext.destination);
+    createRainNoise();
+  }
+
+  return audioContext;
+}
+
+function createRainNoise() {
+  if (!audioContext || !masterGain || rainSource) {
+    return;
+  }
+
+  const bufferSize = audioContext.sampleRate * 2;
+  const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+  const channel = buffer.getChannelData(0);
+
+  for (let index = 0; index < bufferSize; index += 1) {
+    channel[index] = (Math.random() * 2 - 1) * 0.45;
+  }
+
+  const filter = audioContext.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.value = 1800;
+
+  const rainGain = audioContext.createGain();
+  rainGain.gain.value = 0.34;
+
+  rainSource = audioContext.createBufferSource();
+  rainSource.buffer = buffer;
+  rainSource.loop = true;
+  rainSource.connect(filter);
+  filter.connect(rainGain);
+  rainGain.connect(masterGain);
+  rainSource.start();
+}
+
+function playWarmNote(frequency, startTime, duration = 0.32) {
+  if (!audioContext || !masterGain) {
+    return;
+  }
+
+  const oscillator = audioContext.createOscillator();
+  const noteGain = audioContext.createGain();
+  oscillator.type = "triangle";
+  oscillator.frequency.value = frequency;
+
+  noteGain.gain.setValueAtTime(0, startTime);
+  noteGain.gain.linearRampToValueAtTime(0.08, startTime + 0.035);
+  noteGain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+
+  oscillator.connect(noteGain);
+  noteGain.connect(masterGain);
+  oscillator.start(startTime);
+  oscillator.stop(startTime + duration + 0.03);
+}
+
+function scheduleMusicLoop() {
+  if (!audioContext || musicLoopId) {
+    return;
+  }
+
+  const phrase = [523.25, 659.25, 783.99, 659.25, 587.33, 659.25, 523.25, 392.0];
+  let noteIndex = 0;
+
+  musicLoopId = window.setInterval(() => {
+    if (!musicEnabled || !audioContext) {
+      return;
+    }
+
+    const now = audioContext.currentTime;
+    playWarmNote(phrase[noteIndex % phrase.length], now, 0.34);
+    noteIndex += 1;
+  }, 520);
+}
+
+function startBackgroundMusic() {
+  const context = getAudioContext();
+  if (!context || !masterGain) {
+    return;
+  }
+
+  context.resume();
+  masterGain.gain.setTargetAtTime(musicEnabled ? MUSIC_VOLUME : 0, context.currentTime, 0.08);
+  scheduleMusicLoop();
+}
+
+function syncMusicVolume() {
+  if (!audioContext || !masterGain) {
+    return;
+  }
+
+  if (musicEnabled) {
+    audioContext.resume();
+  }
+
+  masterGain.gain.setTargetAtTime(musicEnabled ? MUSIC_VOLUME : 0, audioContext.currentTime, 0.08);
 }
 
 app.addEventListener("pointerdown", (event) => {
@@ -411,6 +537,15 @@ app.addEventListener("click", (event) => {
     inspectedChoice = null;
     isBoxGateOpen = false;
     hasStarted = true;
+    startBackgroundMusic();
+    render();
+    return;
+  }
+
+  if (action === "toggle-music") {
+    musicEnabled = !musicEnabled;
+    startBackgroundMusic();
+    syncMusicVolume();
     render();
     return;
   }
