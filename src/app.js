@@ -19,12 +19,15 @@ let inspectedChoice = null;
 let suppressNextClick = false;
 let isBoxGateOpen = false;
 let backgroundMusic = null;
+let rainAudioContext = null;
+let rainSource = null;
 
 const IMAGE_RATIO = 819 / 546;
 const MOBILE_PAN_QUERY = "(max-width: 700px)";
 const BOX_CODE = "07070522";
 const GIFT_OPENING_DURATION_MS = 1400;
 const BGM_VOLUME = 0.42;
+const RAIN_VOLUME = 0.055;
 
 const sceneImages = {
   entrance: "./assets/rain-garden-entrance.png",
@@ -345,6 +348,65 @@ function startBackgroundMusic() {
       // Browsers may still reject playback until a direct user gesture.
     });
   }
+
+  startRainAmbience();
+}
+
+function startRainAmbience() {
+  const context = getRainAudioContext();
+  if (!context) {
+    return;
+  }
+
+  context.resume();
+  createRainNoise(context);
+}
+
+function getRainAudioContext() {
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) {
+    return null;
+  }
+
+  if (!rainAudioContext) {
+    rainAudioContext = new AudioContext();
+  }
+
+  return rainAudioContext;
+}
+
+function createRainNoise(context) {
+  if (rainSource) {
+    return;
+  }
+
+  const bufferSize = context.sampleRate * 2;
+  const buffer = context.createBuffer(1, bufferSize, context.sampleRate);
+  const channel = buffer.getChannelData(0);
+
+  for (let index = 0; index < bufferSize; index += 1) {
+    channel[index] = (Math.random() * 2 - 1) * 0.42;
+  }
+
+  const lowpass = context.createBiquadFilter();
+  lowpass.type = "lowpass";
+  lowpass.frequency.value = 1800;
+
+  const highpass = context.createBiquadFilter();
+  highpass.type = "highpass";
+  highpass.frequency.value = 420;
+
+  const rainGain = context.createGain();
+  rainGain.gain.value = RAIN_VOLUME;
+
+  rainSource = context.createBufferSource();
+  rainSource.buffer = buffer;
+  rainSource.loop = true;
+  rainSource.connect(highpass);
+  highpass.connect(lowpass);
+  lowpass.connect(rainGain);
+  rainGain.connect(context.destination);
+  rainSource.start();
 }
 
 app.addEventListener("pointerdown", (event) => {
