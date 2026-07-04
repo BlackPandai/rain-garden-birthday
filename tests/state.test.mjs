@@ -292,16 +292,15 @@ test("correct final code plays gift opening animation before the ending", () => 
   assert.match(styles, /@keyframes\s+gift-glow-bloom/);
 });
 
-test("game includes generated rainy background music with a visible toggle", () => {
+test("game uses bundled bgm mp3 without rendering a music toggle", () => {
   const appSource = readFileSync(new URL("../src/app.js", import.meta.url), "utf8");
   const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
-  assert.match(appSource, /AudioContext/);
+  assert.match(appSource, /assets\/bgm\.mp3/);
   assert.match(appSource, /startBackgroundMusic/);
-  assert.match(appSource, /createRainNoise/);
-  assert.match(appSource, /scheduleMusicLoop/);
-  assert.match(appSource, /data-action="toggle-music"/);
-  assert.match(appSource, /音乐/);
-  assert.match(styles, /\.music-toggle/);
-}
-);
+  assert.match(appSource, /new Audio/);
+  assert.match(appSource, /loop = true/);
+  assert.equal(appSource.includes('data-action="toggle-music"'), false);
+  assert.equal(appSource.includes("renderMusicToggle"), false);
+  assert.equal(styles.includes(".music-toggle"), false);
+});
