@@ -298,6 +298,11 @@ p {
   opacity: 1;
 }
 
+.scene-hotspot--egg span {
+  background: rgba(111, 210, 255, 0.28);
+  box-shadow: 0 0 1.7rem rgba(111, 210, 255, 0.58);
+}
+
 .ending-scene {
   display: grid;
   place-items: center;
@@ -466,6 +471,60 @@ p {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.ticket-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.ticket-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(3, 8, 10, 0.72);
+  backdrop-filter: blur(10px);
+}
+
+.ticket-modal__card {
+  position: relative;
+  z-index: 1;
+  width: min(44rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 1.4rem;
+  padding: 1rem;
+  background: linear-gradient(180deg, rgba(8, 20, 24, 0.94), rgba(5, 10, 12, 0.98));
+  box-shadow: 0 1.4rem 4rem rgba(0, 0, 0, 0.5);
+}
+
+.ticket-modal__close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--text);
+  font-size: 1.5rem;
+}
+
+.ticket-modal__image {
+  display: block;
+  width: auto;
+  max-width: min(24rem, 82vw);
+  max-height: min(34rem, 64vh);
+  margin: 0.75rem 0;
+  margin-inline: auto;
+  border-radius: 1rem;
+  object-fit: contain;
+  box-shadow: 0 0.8rem 2rem rgba(0, 0, 0, 0.28);
 }
 
 @media (max-width: 430px) {

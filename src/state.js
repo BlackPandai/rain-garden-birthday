@@ -1,30 +1,13 @@
 export const SCENE_ORDER = ["entrance", "courtyard-pond", "living-room", "window", "bedroom"];
 
-export const GIFT_HINTS = {
-  oldMemory: "去卧室或窗边找一份和回忆有关的实体礼物，例如相册、手写信或纪念小物。",
-  companionship: "去客厅或玄关找一份和日常陪伴有关的实体礼物，例如香薰、毯子、首饰或摸鱼定制物。",
-  future: "去庭院或池塘边找防水小卡片、二维码或信封；它会指向机票、旅行基金或红包口令。",
-};
-
-export const BEDROOM_CHOICE_BY_ENDING = {
-  oldMemory: "to-memory",
-  companionship: "to-together",
-  future: "to-future",
-};
-
 const REPLAY_HIDDEN_CHOICE_SCENES = new Set(["courtyard-pond", "living-room", "window"]);
 
 export function createInitialState() {
   return {
     currentSceneId: "entrance",
     completedScenes: [],
-    imprints: {
-      oldMemory: 0,
-      companionship: 0,
-      future: 0,
-    },
-    finalPreference: null,
-    unlockedEndings: [],
+    mainGiftUnlocked: false,
+    eggGiftUnlocked: false,
     canReturnToGarden: false,
     boxUnlocked: false,
     passwordAttempts: 0,
@@ -33,18 +16,7 @@ export function createInitialState() {
   };
 }
 
-export function applyChoice(state, weights) {
-  return {
-    ...state,
-    imprints: {
-      oldMemory: state.imprints.oldMemory + (weights.oldMemory ?? 0),
-      companionship: state.imprints.companionship + (weights.companionship ?? 0),
-      future: state.imprints.future + (weights.future ?? 0),
-    },
-  };
-}
-
-export function completeScene(state, sceneId, finalPreference = null) {
+export function completeScene(state, sceneId) {
   const currentIndex = SCENE_ORDER.indexOf(sceneId);
   const nextSceneId = SCENE_ORDER[currentIndex + 1] ?? sceneId;
   const completedScenes = state.completedScenes.includes(sceneId)
@@ -55,44 +27,32 @@ export function completeScene(state, sceneId, finalPreference = null) {
     ...state,
     currentSceneId: nextSceneId,
     completedScenes,
-    finalPreference: finalPreference ?? state.finalPreference,
   };
 }
 
-export function chooseEnding(state) {
-  const entries = Object.entries(state.imprints);
-  const maxScore = Math.max(...entries.map(([, score]) => score));
-  const tied = entries.filter(([, score]) => score === maxScore).map(([key]) => key);
-
-  if (tied.length === 1) {
-    return tied[0];
-  }
-
-  if (state.finalPreference && tied.includes(state.finalPreference)) {
-    return state.finalPreference;
-  }
-
-  if (tied.includes("future")) {
-    return "future";
-  }
-
-  return tied[0];
-}
-
-export function unlockEnding(state, endingId) {
-  const unlockedEndings = state.unlockedEndings.includes(endingId)
-    ? state.unlockedEndings
-    : [...state.unlockedEndings, endingId];
-
+export function unlockMainGift(state) {
   return {
     ...state,
-    unlockedEndings,
+    mainGiftUnlocked: true,
+    boxUnlocked: true,
+    passwordAttempts: 0,
     canReturnToGarden: true,
   };
 }
 
-export function getClearGiftHint(endingId) {
-  return GIFT_HINTS[endingId];
+export function canOpenEggGift(state) {
+  return state.mainGiftUnlocked === true;
+}
+
+export function unlockEggGift(state) {
+  if (!canOpenEggGift(state)) {
+    return state;
+  }
+
+  return {
+    ...state,
+    eggGiftUnlocked: true,
+  };
 }
 
 export function nextHintLevel(state, sceneId) {
@@ -111,12 +71,6 @@ export function startReplayAtScene(state, sceneId) {
     ...state,
     currentSceneId: sceneId,
     completedScenes: [],
-    imprints: {
-      oldMemory: 0,
-      companionship: 0,
-      future: 0,
-    },
-    finalPreference: null,
     hintLevelByScene: {},
   };
 }
@@ -139,15 +93,15 @@ export function rememberSceneChoice(state, sceneId, choiceId) {
 }
 
 export function shouldShowChoice(state, sceneId, choiceId) {
-  if (sceneId !== "bedroom") {
-    if (!state.canReturnToGarden || !REPLAY_HIDDEN_CHOICE_SCENES.has(sceneId)) {
-      return true;
-    }
-
-    return !(state.selectedChoiceIdsByScene?.[sceneId] ?? []).includes(choiceId);
+  if (sceneId === "bedroom") {
+    return !(state.mainGiftUnlocked && choiceId === "to-main-gift");
   }
 
-  return !state.unlockedEndings.some((endingId) => BEDROOM_CHOICE_BY_ENDING[endingId] === choiceId);
+  if (!state.canReturnToGarden || !REPLAY_HIDDEN_CHOICE_SCENES.has(sceneId)) {
+    return true;
+  }
+
+  return !(state.selectedChoiceIdsByScene?.[sceneId] ?? []).includes(choiceId);
 }
 
 export function saveState(state, storage = window.localStorage) {
@@ -156,7 +110,7 @@ export function saveState(state, storage = window.localStorage) {
 
 export function loadState(storage = window.localStorage) {
   const raw = storage.getItem("rain-garden-birthday-state");
-  return raw ? JSON.parse(raw) : createInitialState();
+  return raw ? { ...createInitialState(), ...JSON.parse(raw) } : createInitialState();
 }
 
 export function resetState(storage = window.localStorage) {

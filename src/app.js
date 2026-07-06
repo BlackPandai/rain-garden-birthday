@@ -1,15 +1,15 @@
 import {
-  applyChoice,
-  chooseEnding,
+  canOpenEggGift,
   completeScene,
   createInitialState,
   loadState,
   rememberSceneChoice,
   saveState,
   shouldShowChoice,
-  unlockEnding,
+  unlockEggGift,
+  unlockMainGift,
 } from "./state.js";
-import { endings, scenes } from "./content.js";
+import { eggGift, mainGift, scenes } from "./content.js";
 
 const app = document.querySelector("#app");
 
@@ -21,6 +21,7 @@ let isBoxGateOpen = false;
 let backgroundMusic = null;
 let rainAudioContext = null;
 let rainSource = null;
+let preloadPromise = null;
 
 const IMAGE_RATIO = 819 / 546;
 const MOBILE_PAN_QUERY = "(max-width: 700px)";
@@ -38,32 +39,35 @@ const sceneImages = {
 };
 
 const moyuImage = "./assets/moyu-brown-cocker-dog-transparent.png";
+const PRELOAD_IMAGE_SOURCES = [
+  ...Object.values(sceneImages),
+  moyuImage,
+  "./assets/ticket.png",
+];
 
 const hotspotPoints = {
   entrance: {
-    "umbrella-charm": { x: 80, y: 69 },
-    "paw-prints": { x: 58, y: 82 },
-    "rain-card": { x: 60, y: 51 },
+    "umbrella-charm": { x: 76, y: 60 },
+    "paw-prints": { x: 61, y: 82 },
+    "rain-card": { x: 58, y: 47 },
   },
   "living-room": {
-    "photo-frame": { x: 56, y: 50 },
-    "moyu-bed": { x: 34, y: 75 },
-    "lamp-direction": { x: 67, y: 43 },
+    "tea-cups": { x: 27, y: 79 },
+    "moyu-bed": { x: 80, y: 78 },
+    "lamp-direction": { x: 8, y: 52 },
   },
   window: {
-    "inside-photo": { x: 27, y: 70 },
-    "moyu-tail": { x: 31, y: 77 },
-    "outside-light": { x: 70, y: 40 },
+    "paper-note": { x: 29, y: 84 },
+    "window-envelope": { x: 39, y: 84 },
+    "outside-light": { x: 25, y: 55 },
   },
   "courtyard-pond": {
-    "courtyard-lantern": { x: 17, y: 36 },
-    "courtyard-bridge": { x: 66, y: 62 },
-    "courtyard-moon": { x: 61, y: 16 },
+    "courtyard-lantern": { x: 17, y: 35 },
+    "courtyard-bridge": { x: 63, y: 62 },
+    "courtyard-moon": { x: 68, y: 10 },
   },
   bedroom: {
-    "to-memory": { x: 10, y: 70 },
-    "to-together": { x: 74, y: 53 },
-    "to-future": { x: 85, y: 69 },
+    "to-main-gift": { x: 84, y: 68 },
   },
 };
 
@@ -102,13 +106,13 @@ function render() {
 
   const scene = getCurrentScene();
 
-  if (scene.id === "bedroom" && isBoxGateOpen && !state.boxUnlocked) {
+  if (scene.id === "bedroom" && isBoxGateOpen && !state.mainGiftUnlocked) {
     renderBoxGate();
     return;
   }
 
-  if (scene.id === "bedroom" && state.completedScenes.includes("bedroom")) {
-    renderEnding();
+  if (scene.id === "bedroom" && state.mainGiftUnlocked) {
+    renderMainGift();
     return;
   }
 
@@ -140,6 +144,7 @@ function renderScene(scene) {
       <div class="painted-scene" aria-hidden="true"></div>
       <div class="scene-vignette" aria-hidden="true"></div>
       ${renderHotspots(scene)}
+      ${renderEggHotspot(scene)}
       <article class="card dialog ${inspectedChoice ? "dialog--expanded" : "dialog--compact"}">
         <img class="moyu-avatar" src="${moyuImage}" alt="摸鱼" />
         <div class="dialog-copy">
@@ -181,6 +186,26 @@ function renderHotspots(scene) {
       `;
     })
     .join("");
+}
+
+function renderEggHotspot(scene) {
+  if (scene.id !== "courtyard-pond" || !canOpenEggGift(state)) {
+    return "";
+  }
+
+  return `
+    <button
+      class="scene-hotspot scene-hotspot--egg"
+      type="button"
+      data-action="open-egg-gift"
+      data-x="54"
+      data-y="74"
+      aria-label="看池边的船票信封"
+    >
+      <span></span>
+      <strong>看池边的船票信封</strong>
+    </button>
+  `;
 }
 
 function syncSceneLayout() {
@@ -237,33 +262,23 @@ function getHotspotPosition(point, pan) {
   };
 }
 
-function renderEnding() {
-  const endingId = chooseEnding(state);
-  const ending = endings[endingId];
-  const unlockedState = unlockEnding(state, endingId);
-
-  if (unlockedState !== state) {
-    state = unlockedState;
-    saveState(state);
-  }
-
+function renderMainGift() {
   app.innerHTML = `
     <section class="screen point-click ending-screen" style="--scene-image: url('${sceneImages.bedroom}');">
       <div class="painted-scene ending-scene" aria-hidden="true">
-        <div class="gift-card"><span>${ending.badge}</span></div>
+        <div class="gift-card"><span>${mainGift.badge}</span></div>
       </div>
       <div class="scene-vignette" aria-hidden="true"></div>
       <article class="card dialog">
         <p class="eyebrow">雨声轻了一些</p>
         <img class="moyu-avatar" src="${moyuImage}" alt="摸鱼" />
         <div class="dialog-copy">
-          <span class="ending-badge">${ending.badge}</span>
-          <h1>${ending.title}</h1>
-          <p>${ending.body}</p>
-          <p class="moyu">${ending.poeticHint}</p>
+          <h1>${mainGift.title}</h1>
+          <p>${mainGift.body}</p>
+          <p class="moyu">${mainGift.poeticHint}</p>
           <p class="feedback" id="clear-hint"></p>
           <div class="actions">
-            <button class="button" type="button" data-action="clear-ending-hint">让摸鱼说得更明白一点</button>
+            <button class="button" type="button" data-action="clear-main-gift-hint">让摸鱼说得更明白一点</button>
             <button class="button secondary" type="button" data-action="return">回到庭院，再听一会儿雨</button>
             <button class="button secondary" type="button" data-action="restart">从头开始</button>
           </div>
@@ -278,8 +293,8 @@ function renderBoxGate() {
   const errorLines = [
     "",
     "木盒没有动，雨声像是漏掉了一拍。",
-    "摸鱼把纸往你手边推了推。也许不是所有数字都要带上。",
-    "摸鱼用爪子点了点纸上两处：一个属于窗里等的人，一个属于一路跟回家的小尾巴。",
+    "摸鱼把纸往手边推了推，像是在提醒：最后一步在纸上。",
+    "摸鱼点了点两行字：先是被雨等到的人，再是一路跟回家的小尾巴。",
   ];
   const feedback = errorLines[Math.min(attempt, errorLines.length - 1)];
 
@@ -336,12 +351,61 @@ function renderGiftOpening() {
   `;
 }
 
-function startBackgroundMusic() {
+function renderTicketModal() {
+  app.insertAdjacentHTML("beforeend", `
+    <div class="ticket-modal" role="dialog" aria-modal="true" aria-label="${eggGift.title}">
+      <div class="ticket-modal__backdrop" data-action="close-ticket"></div>
+      <article class="ticket-modal__card">
+        <button class="ticket-modal__close" type="button" data-action="close-ticket" aria-label="关闭船票">x</button>
+        <p class="eyebrow">${eggGift.badge}</p>
+        <h1>${eggGift.title}</h1>
+        <img class="ticket-modal__image" src="${eggGift.image}" alt="${eggGift.alt}" />
+        <p>${eggGift.body}</p>
+      </article>
+    </div>
+  `);
+}
+
+function preloadResources() {
+  if (!preloadPromise) {
+    preloadPromise = Promise.allSettled([
+      ...PRELOAD_IMAGE_SOURCES.map(preloadImage),
+      preloadBackgroundMusic(),
+    ]);
+  }
+
+  return preloadPromise;
+}
+
+function preloadImage(src) {
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.onload = resolve;
+    image.onerror = resolve;
+    image.src = src;
+  });
+}
+
+function preloadBackgroundMusic() {
+  ensureBackgroundMusic();
+  backgroundMusic.preload = "auto";
+  backgroundMusic.load();
+
+  return Promise.resolve();
+}
+
+function ensureBackgroundMusic() {
   if (!backgroundMusic) {
     backgroundMusic = new Audio("./assets/bgm.mp3");
     backgroundMusic.loop = true;
     backgroundMusic.volume = BGM_VOLUME;
   }
+
+  return backgroundMusic;
+}
+
+function startBackgroundMusic() {
+  ensureBackgroundMusic();
 
   if (backgroundMusic.paused) {
     backgroundMusic.play().catch(() => {
@@ -496,24 +560,15 @@ app.addEventListener("click", (event) => {
 
   if (action === "continue-scene" && inspectedChoice) {
     const scene = getCurrentScene();
-    const withChoice = rememberSceneChoice(
-      applyChoice(state, inspectedChoice.weights),
-      scene.id,
-      inspectedChoice.id
-    );
-    const finalPreference =
-      scene.id === "bedroom" ? Object.keys(inspectedChoice.weights)[0] : scene.finalPreference;
+    const withChoice = rememberSceneChoice(state, scene.id, inspectedChoice.id);
 
-    if (scene.id === "bedroom" && !state.boxUnlocked) {
+    if (scene.id === "bedroom" && !state.mainGiftUnlocked) {
       isBoxGateOpen = true;
-      setState({
-        ...withChoice,
-        finalPreference,
-      });
+      setState(withChoice);
       return;
     }
 
-    setState(completeScene(withChoice, scene.id, finalPreference));
+    setState(completeScene(withChoice, scene.id));
     return;
   }
 
@@ -523,15 +578,11 @@ app.addEventListener("click", (event) => {
 
     if (value === BOX_CODE) {
       isBoxGateOpen = false;
-      state = {
-        ...state,
-        boxUnlocked: true,
-        passwordAttempts: 0,
-      };
+      state = unlockMainGift(state);
       saveState(state);
       renderGiftOpening();
       window.setTimeout(() => {
-        setState(completeScene(state, "bedroom", state.finalPreference));
+        setState(completeScene(state, "bedroom"));
       }, GIFT_OPENING_DURATION_MS);
       return;
     }
@@ -545,9 +596,25 @@ app.addEventListener("click", (event) => {
     return;
   }
 
-  if (action === "clear-ending-hint") {
-    const ending = endings[chooseEnding(state)];
-    document.querySelector("#clear-hint").textContent = ending.clearHint;
+  if (action === "clear-main-gift-hint") {
+    document.querySelector("#clear-hint").textContent = mainGift.clearHint;
+    return;
+  }
+
+  if (action === "open-egg-gift") {
+    if (!canOpenEggGift(state)) {
+      document.querySelector("#feedback")?.replaceChildren("摸鱼看了看卧室的方向，像是还有一件事要先完成。");
+      return;
+    }
+
+    state = unlockEggGift(state);
+    saveState(state);
+    renderTicketModal();
+    return;
+  }
+
+  if (action === "close-ticket") {
+    document.querySelector(".ticket-modal")?.remove();
     return;
   }
 
@@ -558,8 +625,6 @@ app.addEventListener("click", (event) => {
       ...state,
       currentSceneId: "courtyard-pond",
       completedScenes: [],
-      imprints: { oldMemory: 0, companionship: 0, future: 0 },
-      finalPreference: null,
       hintLevelByScene: {},
     });
     return;
@@ -578,4 +643,5 @@ window.addEventListener("resize", () => {
   }
 });
 
+preloadResources();
 render();

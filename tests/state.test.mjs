@@ -3,20 +3,20 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   SCENE_ORDER,
-  createInitialState,
-  applyChoice,
+  canOpenEggGift,
   completeScene,
-  chooseEnding,
-  unlockEnding,
-  getClearGiftHint,
-  nextHintLevel,
-  saveState,
+  createInitialState,
   loadState,
-  resetState,
-  startReplayAtScene,
+  nextHintLevel,
   rememberSceneChoice,
+  resetState,
+  saveState,
   shouldShowChoice,
+  startReplayAtScene,
+  unlockEggGift,
+  unlockMainGift,
 } from "../src/state.js";
+import { eggGift, mainGift, scenes } from "../src/content.js";
 
 function createMemoryStorage() {
   const store = new Map();
@@ -34,69 +34,20 @@ function createMemoryStorage() {
   };
 }
 
-test("applyChoice adds hidden imprint score", () => {
-  const state = createInitialState();
-  const next = applyChoice(state, { oldMemory: 2, companionship: 0, future: 1 });
-
-  assert.deepEqual(next.imprints, {
-    oldMemory: 2,
-    companionship: 0,
-    future: 1,
-  });
-  assert.deepEqual(state.imprints, {
-    oldMemory: 0,
-    companionship: 0,
-    future: 0,
-  });
-});
-
-test("chooseEnding picks highest imprint", () => {
-  const state = {
-    ...createInitialState(),
-    imprints: { oldMemory: 1, companionship: 4, future: 2 },
-  };
-
-  assert.equal(chooseEnding(state), "companionship");
-});
-
-test("chooseEnding uses final preference to break a tie", () => {
-  const state = {
-    ...createInitialState(),
-    imprints: { oldMemory: 3, companionship: 3, future: 1 },
-    finalPreference: "oldMemory",
-  };
-
-  assert.equal(chooseEnding(state), "oldMemory");
-});
-
-test("chooseEnding falls back to future when still tied", () => {
-  const state = {
-    ...createInitialState(),
-    imprints: { oldMemory: 2, companionship: 2, future: 2 },
-  };
-
-  assert.equal(chooseEnding(state), "future");
-});
-
-test("unlockEnding records ending and unlocks return after first ending", () => {
-  const state = unlockEnding(createInitialState(), "future");
-
-  assert.deepEqual(state.unlockedEndings, ["future"]);
-  assert.equal(state.canReturnToGarden, true);
-});
-
-test("initial state tracks unopened gift box", () => {
+test("initial state starts with both gifts locked", () => {
   const state = createInitialState();
 
+  assert.equal(state.currentSceneId, "entrance");
+  assert.equal(state.mainGiftUnlocked, false);
+  assert.equal(state.eggGiftUnlocked, false);
   assert.equal(state.boxUnlocked, false);
   assert.equal(state.passwordAttempts, 0);
 });
 
-test("completeScene advances from entrance to courtyard and records final preference", () => {
-  const state = completeScene(createInitialState(), "entrance", "companionship");
+test("completeScene advances from entrance to courtyard", () => {
+  const state = completeScene(createInitialState(), "entrance");
 
   assert.equal(state.currentSceneId, "courtyard-pond");
-  assert.equal(state.finalPreference, "companionship");
   assert.deepEqual(state.completedScenes, ["entrance"]);
 });
 
@@ -104,11 +55,40 @@ test("scene route visits courtyard immediately after entrance", () => {
   assert.deepEqual(SCENE_ORDER, ["entrance", "courtyard-pond", "living-room", "window", "bedroom"]);
 });
 
-test("getClearGiftHint returns explicit fallback copy", () => {
-  assert.equal(
-    getClearGiftHint("future"),
-    "去庭院或池塘边找防水小卡片、二维码或信封；它会指向机票、旅行基金或红包口令。"
-  );
+test("main gift unlock enables the courtyard egg gate", () => {
+  const state = unlockMainGift(createInitialState());
+
+  assert.equal(state.mainGiftUnlocked, true);
+  assert.equal(state.boxUnlocked, true);
+  assert.equal(state.passwordAttempts, 0);
+  assert.equal(state.canReturnToGarden, true);
+  assert.equal(canOpenEggGift(state), true);
+});
+
+test("egg gift cannot unlock before main gift", () => {
+  const locked = unlockEggGift(createInitialState());
+  const unlocked = unlockEggGift(unlockMainGift(createInitialState()));
+
+  assert.equal(locked.eggGiftUnlocked, false);
+  assert.equal(canOpenEggGift(locked), false);
+  assert.equal(unlocked.eggGiftUnlocked, true);
+});
+
+test("bedroom choices remain visible until the main gift is unlocked", () => {
+  const beforeMain = createInitialState();
+  const afterMain = unlockMainGift(createInitialState());
+
+  assert.equal(shouldShowChoice(beforeMain, "bedroom", "to-main-gift"), true);
+  assert.equal(shouldShowChoice(afterMain, "bedroom", "to-main-gift"), false);
+});
+
+test("garden room and window hide previously chosen hotspots only after main gift", () => {
+  const beforeMain = rememberSceneChoice(createInitialState(), "courtyard-pond", "courtyard-lantern");
+  const afterMain = unlockMainGift(beforeMain);
+
+  assert.equal(shouldShowChoice(beforeMain, "courtyard-pond", "courtyard-lantern"), true);
+  assert.equal(shouldShowChoice(afterMain, "courtyard-pond", "courtyard-lantern"), false);
+  assert.equal(shouldShowChoice(afterMain, "courtyard-pond", "courtyard-bridge"), true);
 });
 
 test("nextHintLevel increments from zero and caps at three for a scene", () => {
@@ -126,7 +106,7 @@ test("saveState writes JSON to injected storage and loadState returns it", () =>
   const state = {
     ...createInitialState(),
     currentSceneId: "window",
-    imprints: { oldMemory: 2, companionship: 1, future: 3 },
+    mainGiftUnlocked: true,
   };
 
   saveState(state, storage);
@@ -135,13 +115,19 @@ test("saveState writes JSON to injected storage and loadState returns it", () =>
   assert.deepEqual(loadState(storage), state);
 });
 
+test("loadState backfills new gift flags for old saved states", () => {
+  const storage = createMemoryStorage();
+  storage.setItem("rain-garden-birthday-state", JSON.stringify({ currentSceneId: "window" }));
+
+  assert.deepEqual(loadState(storage), {
+    ...createInitialState(),
+    currentSceneId: "window",
+  });
+});
+
 test("resetState removes saved state and returns initial state", () => {
   const storage = createMemoryStorage();
-  const state = {
-    ...createInitialState(),
-    currentSceneId: "bedroom",
-  };
-  saveState(state, storage);
+  saveState({ ...createInitialState(), mainGiftUnlocked: true }, storage);
 
   const reset = resetState(storage);
 
@@ -149,14 +135,13 @@ test("resetState removes saved state and returns initial state", () => {
   assert.deepEqual(reset, createInitialState());
 });
 
-test("startReplayAtScene jumps to a chapter while preserving discovered endings", () => {
+test("startReplayAtScene jumps to a chapter while preserving discovered gifts", () => {
   const state = {
     ...createInitialState(),
     currentSceneId: "bedroom",
     completedScenes: ["entrance", "living-room", "window", "courtyard-pond", "bedroom"],
-    imprints: { oldMemory: 2, companionship: 1, future: 5 },
-    finalPreference: "future",
-    unlockedEndings: ["future"],
+    mainGiftUnlocked: true,
+    eggGiftUnlocked: true,
     canReturnToGarden: true,
     hintLevelByScene: { bedroom: 2 },
   };
@@ -165,43 +150,9 @@ test("startReplayAtScene jumps to a chapter while preserving discovered endings"
     ...state,
     currentSceneId: "window",
     completedScenes: [],
-    imprints: { oldMemory: 0, companionship: 0, future: 0 },
-    finalPreference: null,
     hintLevelByScene: {},
   });
 });
-
-test("bedroom hides the hotspot for an already unlocked ending", () => {
-  const state = {
-    ...createInitialState(),
-    unlockedEndings: ["future"],
-  };
-
-  assert.equal(shouldShowChoice(state, "bedroom", "to-future"), false);
-  assert.equal(shouldShowChoice(state, "bedroom", "to-memory"), true);
-  assert.equal(shouldShowChoice(state, "bedroom", "to-together"), true);
-  assert.equal(shouldShowChoice(state, "courtyard-pond", "courtyard-lantern"), true);
-});
-
-test("garden room and window hide previously chosen hotspots only after an ending", () => {
-  const beforeEnding = rememberSceneChoice(createInitialState(), "courtyard-pond", "courtyard-lantern");
-  const afterEnding = unlockEnding(beforeEnding, "future");
-
-  assert.equal(shouldShowChoice(beforeEnding, "courtyard-pond", "courtyard-lantern"), true);
-  assert.equal(shouldShowChoice(afterEnding, "courtyard-pond", "courtyard-lantern"), false);
-  assert.equal(shouldShowChoice(afterEnding, "courtyard-pond", "courtyard-bridge"), true);
-});
-
-test("restart clears remembered hotspot choices", () => {
-  const state = rememberSceneChoice(createInitialState(), "living-room", "moyu-bed");
-
-  assert.deepEqual(state.selectedChoiceIdsByScene, {
-    "living-room": ["moyu-bed"],
-  });
-  assert.deepEqual(createInitialState().selectedChoiceIdsByScene, {});
-});
-
-import { scenes, endings } from "../src/content.js";
 
 test("content defines all route scenes", () => {
   assert.deepEqual(
@@ -219,8 +170,64 @@ test("each scene has choices and layered moyu hints", () => {
   }
 });
 
-test("content defines three gift endings", () => {
-  assert.deepEqual(Object.keys(endings).sort(), ["companionship", "future", "oldMemory"]);
+test("content defines one main gift and one gated egg gift", () => {
+  assert.equal(mainGift.title, "灯下的小秘密");
+  assert.match(mainGift.body, /卧室/);
+  assert.match(mainGift.clearHint, /卧室|床边|书桌|柜上/);
+  assert.equal(eggGift.title, "雨里的船票");
+  assert.match(eggGift.image, /ticket\.png/);
+});
+
+test("bedroom asks player to find the physical handwritten card", () => {
+  const bedroom = scenes.find((scene) => scene.id === "bedroom");
+
+  assert.ok(bedroom);
+  assert.equal(bedroom.choices.length, 1);
+  assert.equal(bedroom.choices[0].id, "to-main-gift");
+  assert.match(bedroom.completionText, /手边|床边|纸/);
+  assert.match(bedroom.puzzlePrompt, /小木盒/);
+});
+
+test("living room and window copy avoid photo frame objects", () => {
+  const sceneText = scenes
+    .filter((scene) => ["living-room", "window"].includes(scene.id))
+    .map((scene) => [
+      scene.body,
+      scene.puzzlePrompt,
+      scene.completionText,
+      ...scene.hints,
+      ...scene.choices.flatMap((choice) => [choice.label, choice.detail]),
+    ].join("\n"))
+    .join("\n");
+
+  assert.equal(sceneText.includes("相框"), false);
+  assert.equal(sceneText.includes("照片"), false);
+});
+
+test("hotspot coordinates match the refreshed scene images", () => {
+  const appSource = readFileSync(new URL("../src/app.js", import.meta.url), "utf8");
+
+  const expectedCoordinates = [
+    '"umbrella-charm": { x: 76, y: 60 }',
+    '"paw-prints": { x: 61, y: 82 }',
+    '"rain-card": { x: 58, y: 47 }',
+    '"tea-cups": { x: 27, y: 79 }',
+    '"moyu-bed": { x: 80, y: 78 }',
+    '"lamp-direction": { x: 8, y: 52 }',
+    '"paper-note": { x: 29, y: 84 }',
+    '"window-envelope": { x: 39, y: 84 }',
+    '"outside-light": { x: 25, y: 55 }',
+    '"courtyard-lantern": { x: 17, y: 35 }',
+    '"courtyard-bridge": { x: 63, y: 62 }',
+    '"courtyard-moon": { x: 68, y: 10 }',
+    '"to-main-gift": { x: 84, y: 68 }',
+    'data-x="54"',
+    'data-y="74"',
+  ];
+
+  for (const coordinate of expectedCoordinates) {
+    assert.ok(appSource.includes(coordinate), `missing coordinate ${coordinate}`);
+  }
 });
 
 test("desktop scene UI does not render horizontal view controls", () => {
@@ -251,11 +258,14 @@ test("mobile scene UI supports smooth swipe panning without buttons", () => {
   assert.match(styles, /transition:\s*background-position/);
 });
 
-test("final gift box requires unified eight digit clue without explicit ending count", () => {
+test("final gift box requires unified eight digit clue and handwritten card prompt", () => {
   const appSource = readFileSync(new URL("../src/app.js", import.meta.url), "utf8");
 
   assert.match(appSource, /07070522/);
   assert.match(appSource, /输入八位线索/);
+  assert.match(appSource, /最后一步在纸上/);
+  assert.match(appSource, /被雨等到的人/);
+  assert.match(appSource, /一路跟回家的小尾巴/);
   assert.match(appSource, /data-action="submit-box-code"/);
   assert.equal(appSource.includes("1 / 3"), false);
   assert.equal(appSource.includes("/ 3"), false);
@@ -280,7 +290,7 @@ test("main scene completion copy carries the four required digit clues", () => {
   }
 });
 
-test("correct final code plays gift opening animation before the ending", () => {
+test("correct final code plays gift opening animation before the main gift", () => {
   const appSource = readFileSync(new URL("../src/app.js", import.meta.url), "utf8");
   const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
@@ -290,6 +300,44 @@ test("correct final code plays gift opening animation before the ending", () => 
   assert.match(appSource, /setTimeout/);
   assert.match(styles, /@keyframes\s+gift-lid-open/);
   assert.match(styles, /@keyframes\s+gift-glow-bloom/);
+});
+
+test("app renders a single main gift instead of three endings", () => {
+  const appSource = readFileSync(new URL("../src/app.js", import.meta.url), "utf8");
+
+  assert.match(appSource, /mainGift/);
+  assert.match(appSource, /renderMainGift/);
+  assert.match(appSource, /unlockMainGift/);
+  assert.equal(appSource.includes("chooseEnding"), false);
+  assert.equal(appSource.includes("unlockEnding"), false);
+  assert.equal(appSource.includes("ending-badge"), false);
+});
+
+test("courtyard egg gift is gated by main gift state in render and click handling", () => {
+  const appSource = readFileSync(new URL("../src/app.js", import.meta.url), "utf8");
+
+  assert.match(appSource, /renderEggHotspot/);
+  assert.match(appSource, /canOpenEggGift\(state\)/);
+  assert.match(appSource, /open-egg-gift/);
+  assert.match(appSource, /unlockEggGift/);
+  assert.match(appSource, /renderTicketModal/);
+  assert.match(appSource, /eggGift\.image/);
+});
+
+test("ticket image uses the provided PNG asset and is sized for the modal", () => {
+  const ticket = readFileSync(new URL("../assets/ticket.png", import.meta.url));
+  const contentSource = readFileSync(new URL("../src/content.js", import.meta.url), "utf8");
+  const appSource = readFileSync(new URL("../src/app.js", import.meta.url), "utf8");
+  const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+  assert.ok(ticket.length > 0);
+  assert.match(contentSource, /ticket\.png/);
+  assert.match(appSource, /ticket\.png/);
+  assert.equal(appSource.includes("disney-cruise-ticket.svg"), false);
+  assert.match(styles, /\.ticket-modal__image/);
+  assert.match(styles, /max-width:\s*min\(24rem,\s*82vw\)/);
+  assert.match(styles, /max-height:\s*min\(34rem,\s*64vh\)/);
+  assert.match(styles, /object-fit:\s*contain/);
 });
 
 test("game layers bundled bgm mp3 with generated rain ambience without rendering a music toggle", () => {
@@ -306,4 +354,32 @@ test("game layers bundled bgm mp3 with generated rain ambience without rendering
   assert.equal(appSource.includes('data-action="toggle-music"'), false);
   assert.equal(appSource.includes("renderMusicToggle"), false);
   assert.equal(styles.includes(".music-toggle"), false);
+});
+
+test("app preloads visual and audio assets when opened", () => {
+  const appSource = readFileSync(new URL("../src/app.js", import.meta.url), "utf8");
+
+  assert.match(appSource, /preloadResources/);
+  assert.match(appSource, /PRELOAD_IMAGE_SOURCES/);
+  assert.match(appSource, /new Image\(\)/);
+  assert.match(appSource, /Promise\.allSettled/);
+  assert.match(appSource, /preload = "auto"/);
+  assert.match(appSource, /backgroundMusic\.load\(\)/);
+  assert.match(appSource, /ticket\.png/);
+  assert.match(appSource, /moyu-brown-cocker-dog-transparent\.png/);
+  assert.match(appSource, /bgm\.mp3/);
+});
+
+test("source no longer exposes the old three ending structure", () => {
+  const appSource = readFileSync(new URL("../src/app.js", import.meta.url), "utf8");
+  const stateSource = readFileSync(new URL("../src/state.js", import.meta.url), "utf8");
+  const contentSource = readFileSync(new URL("../src/content.js", import.meta.url), "utf8");
+
+  for (const source of [appSource, stateSource, contentSource]) {
+    assert.equal(source.includes("chooseEnding"), false);
+    assert.equal(source.includes("unlockEnding"), false);
+    assert.equal(source.includes("oldMemory"), false);
+    assert.equal(source.includes("companionship"), false);
+    assert.equal(source.includes("future"), false);
+  }
 });
