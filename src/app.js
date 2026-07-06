@@ -33,7 +33,6 @@ const RAIN_VOLUME = 0.055;
 const sceneImages = {
   entrance: "./assets/rain-garden-entrance.png",
   "living-room": "./assets/rain-garden-living-room.png",
-  window: "./assets/rain-garden-window-room.png",
   "courtyard-pond": "./assets/warm-rainy-jiangnan-garden.png",
   bedroom: "./assets/rain-garden-bedroom.png",
 };
@@ -48,18 +47,11 @@ const PRELOAD_IMAGE_SOURCES = [
 const hotspotPoints = {
   entrance: {
     "umbrella-charm": { x: 76, y: 60 },
-    "paw-prints": { x: 61, y: 82 },
     "rain-card": { x: 58, y: 47 },
   },
   "living-room": {
-    "tea-cups": { x: 27, y: 79 },
-    "moyu-bed": { x: 80, y: 78 },
-    "lamp-direction": { x: 8, y: 52 },
-  },
-  window: {
-    "paper-note": { x: 29, y: 84 },
-    "window-envelope": { x: 39, y: 84 },
-    "outside-light": { x: 25, y: 55 },
+    "tea-cups": { x: 28, y: 78 },
+    "moyu-bed": { x: 77, y: 76 },
   },
   "courtyard-pond": {
     "courtyard-lantern": { x: 17, y: 35 },
@@ -68,6 +60,7 @@ const hotspotPoints = {
   },
   bedroom: {
     "to-main-gift": { x: 84, y: 68 },
+    "bedroom-card": { x: 66, y: 34 },
   },
 };
 
@@ -138,6 +131,12 @@ function renderScene(scene) {
   const feedback = inspectedChoice
     ? `${inspectedChoice.detail} ${scene.completionText}`
     : scene.body;
+  const choiceNote = inspectedChoice?.isDecoy
+    ? "这好像只是摸鱼故意留下的岔路。再看看真正有回应的地方。"
+    : "摸鱼轻轻甩了甩耳朵，像是在催你继续。";
+  const actionMarkup = inspectedChoice && !inspectedChoice.isDecoy
+    ? '<div class="actions"><button class="button" type="button" data-action="continue-scene">继续跟上摸鱼</button></div>'
+    : "";
 
   app.innerHTML = `
     <section class="screen point-click point-click--${scene.id}" data-scene-id="${scene.id}" style="--scene-image: url('${sceneImages[scene.id]}');">
@@ -150,8 +149,8 @@ function renderScene(scene) {
         <div class="dialog-copy">
           <p class="eyebrow">${scene.eyebrow}</p>
           <p id="feedback">${feedback}</p>
-          <p class="moyu">${inspectedChoice ? "摸鱼轻轻甩了甩耳朵，像是在催你继续。" : scene.puzzlePrompt}</p>
-          ${inspectedChoice ? '<div class="actions"><button class="button" type="button" data-action="continue-scene">继续跟上摸鱼</button></div>' : ""}
+          <p class="moyu">${inspectedChoice ? choiceNote : scene.puzzlePrompt}</p>
+          ${actionMarkup}
         </div>
       </article>
     </section>
@@ -198,12 +197,12 @@ function renderEggHotspot(scene) {
       class="scene-hotspot scene-hotspot--egg"
       type="button"
       data-action="open-egg-gift"
-      data-x="54"
-      data-y="74"
-      aria-label="看池边的船票信封"
+      data-x="68"
+      data-y="10"
+      aria-label="看雨后的月亮"
     >
       <span></span>
-      <strong>看池边的船票信封</strong>
+      <strong>看雨后的月亮</strong>
     </button>
   `;
 }

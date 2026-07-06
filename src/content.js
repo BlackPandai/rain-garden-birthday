@@ -7,19 +7,15 @@ export const scenes = [
     puzzlePrompt: "先看哪一个线索？",
     choices: [
       {
-        id: "umbrella-charm",
-        label: "看伞架里的油纸伞",
-        detail: "伞柄内侧刻着一个很小的日期，像是某次一起淋雨回家的晚上。",
-      },
-      {
-        id: "paw-prints",
-        label: "看门垫上的湿爪印",
-        detail: "爪印停在门垫边缘，没有去远处，像是在等你跟上。",
-      },
-      {
         id: "rain-card",
         label: "看木门上的铜环",
         detail: "铜环被雨气润得发亮，轻轻一碰，门后那条路像是更远了一点。",
+      },
+      {
+        id: "umbrella-charm",
+        label: "看伞架里的油纸伞",
+        detail: "伞面还滴着雨，像是摸鱼故意让你多停了一会儿。",
+        isDecoy: true,
       },
     ],
     completionText:
@@ -45,12 +41,8 @@ export const scenes = [
       {
         id: "moyu-bed",
         label: "看摸鱼的小窝",
-        detail: "小窝下面露出一张纸：普通的日子，也想和你一起慢慢过。",
-      },
-      {
-        id: "lamp-direction",
-        label: "看桌边的暖灯",
-        detail: "灯影在墙上连成一条路，指向窗外的庭院。",
+        detail: "摸鱼的小窝被整理得很软，但真正的线索不在这里。",
+        isDecoy: true,
       },
     ],
     completionText:
@@ -59,37 +51,6 @@ export const scenes = [
       "摸鱼趴到自己的小窝边。",
       "摸鱼在茶盏、小窝和暖灯之间慢慢转了一圈。",
       "客厅里可疑的是三件具体物品：茶盏、小窝、暖灯。",
-    ],
-  },
-  {
-    id: "window",
-    eyebrow: "窗边",
-    title: "雨痕与花窗",
-    body: "雨水沿着花窗慢慢滑下。窗内有信封和灯影，窗外能看见庭院的微光。摸鱼在一旁安静等你靠近桌角。",
-    puzzlePrompt: "你先看窗边哪一个物件？",
-    choices: [
-      {
-        id: "paper-note",
-        label: "看桌上的纸笺",
-        detail: "纸笺被雨夜的潮气压得微微卷起，像把一句话藏在灯影下面。",
-      },
-      {
-        id: "window-envelope",
-        label: "看桌上的信封",
-        detail: "信封没有封口，边角被摸鱼蹭得微微翘起，像藏着一句没说完的话。",
-      },
-      {
-        id: "outside-light",
-        label: "看圆门里的灯",
-        detail: "圆门深处有一点灯光，好像在等雨停。",
-      },
-    ],
-    completionText:
-      "信封被雨气压弯了一点，边缘上两个相同的小数挨在一起，像一双并排的爪印。花窗上的雨痕连成顺序，指向庭院和池塘。",
-    hints: [
-      "摸鱼一直盯着桌角。",
-      "摸鱼用爪子碰了碰纸笺和信封，又看向窗外圆门里的灯。",
-      "窗边可点的物件是纸笺、信封和圆门里的灯。",
     ],
   },
   {
@@ -107,12 +68,8 @@ export const scenes = [
       {
         id: "courtyard-bridge",
         label: "看小桥",
-        detail: "桥面被雨水洗得发亮，像把此岸和另一边轻轻连了起来。",
-      },
-      {
-        id: "courtyard-moon",
-        label: "看月亮",
-        detail: "云后的月亮露出一点光，水面也跟着亮了一下。",
+        detail: "桥面被雨水洗得发亮，只是把你带回庭院的静处。",
+        isDecoy: true,
       },
     ],
     completionText:
@@ -135,9 +92,15 @@ export const scenes = [
         label: "看柜上的小木盒",
         detail: "小木盒安静地放在柜上，盒盖边缘露出一点暖色的光。",
       },
+      {
+        id: "bedroom-card",
+        label: "看床边的手写卡片",
+        detail: "卡片上的字像是最后一步的方向，但要打开的不是它。",
+        isDecoy: true,
+      },
     ],
     completionText:
-      "小木盒没有锁孔，只有八个空格。摸鱼把爪子搭在床边那张纸上，像是在说：最后一步，不在雨里，在你手边。",
+      "小木盒没有锁孔，只有八个空格。摸鱼把爪子搭在床边那张纸上，纸角有两个相同的小数，像是在说：最后一步，不在雨里，在你手边。",
     hints: [
       "摸鱼把最后一张卡片放到床边。",
       "摸鱼在小木盒和床边那张纸之间停了很久。",

@@ -1,6 +1,6 @@
-export const SCENE_ORDER = ["entrance", "courtyard-pond", "living-room", "window", "bedroom"];
+export const SCENE_ORDER = ["entrance", "courtyard-pond", "living-room", "bedroom"];
 
-const REPLAY_HIDDEN_CHOICE_SCENES = new Set(["courtyard-pond", "living-room", "window"]);
+const REPLAY_HIDDEN_CHOICE_SCENES = new Set(["courtyard-pond", "living-room"]);
 
 export function createInitialState() {
   return {

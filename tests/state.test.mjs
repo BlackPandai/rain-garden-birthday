@@ -52,7 +52,7 @@ test("completeScene advances from entrance to courtyard", () => {
 });
 
 test("scene route visits courtyard immediately after entrance", () => {
-  assert.deepEqual(SCENE_ORDER, ["entrance", "courtyard-pond", "living-room", "window", "bedroom"]);
+  assert.deepEqual(SCENE_ORDER, ["entrance", "courtyard-pond", "living-room", "bedroom"]);
 });
 
 test("main gift unlock enables the courtyard egg gate", () => {
@@ -82,7 +82,7 @@ test("bedroom choices remain visible until the main gift is unlocked", () => {
   assert.equal(shouldShowChoice(afterMain, "bedroom", "to-main-gift"), false);
 });
 
-test("garden room and window hide previously chosen hotspots only after main gift", () => {
+test("garden and living room hide previously chosen hotspots only after main gift", () => {
   const beforeMain = rememberSceneChoice(createInitialState(), "courtyard-pond", "courtyard-lantern");
   const afterMain = unlockMainGift(beforeMain);
 
@@ -105,7 +105,7 @@ test("saveState writes JSON to injected storage and loadState returns it", () =>
   const storage = createMemoryStorage();
   const state = {
     ...createInitialState(),
-    currentSceneId: "window",
+    currentSceneId: "living-room",
     mainGiftUnlocked: true,
   };
 
@@ -117,11 +117,11 @@ test("saveState writes JSON to injected storage and loadState returns it", () =>
 
 test("loadState backfills new gift flags for old saved states", () => {
   const storage = createMemoryStorage();
-  storage.setItem("rain-garden-birthday-state", JSON.stringify({ currentSceneId: "window" }));
+  storage.setItem("rain-garden-birthday-state", JSON.stringify({ currentSceneId: "living-room" }));
 
   assert.deepEqual(loadState(storage), {
     ...createInitialState(),
-    currentSceneId: "window",
+    currentSceneId: "living-room",
   });
 });
 
@@ -139,16 +139,16 @@ test("startReplayAtScene jumps to a chapter while preserving discovered gifts", 
   const state = {
     ...createInitialState(),
     currentSceneId: "bedroom",
-    completedScenes: ["entrance", "living-room", "window", "courtyard-pond", "bedroom"],
+    completedScenes: ["entrance", "living-room", "courtyard-pond", "bedroom"],
     mainGiftUnlocked: true,
     eggGiftUnlocked: true,
     canReturnToGarden: true,
     hintLevelByScene: { bedroom: 2 },
   };
 
-  assert.deepEqual(startReplayAtScene(state, "window"), {
+  assert.deepEqual(startReplayAtScene(state, "living-room"), {
     ...state,
-    currentSceneId: "window",
+    currentSceneId: "living-room",
     completedScenes: [],
     hintLevelByScene: {},
   });
@@ -161,12 +161,30 @@ test("content defines all route scenes", () => {
   );
 });
 
-test("each scene has choices and layered moyu hints", () => {
+test("each scene has two choices with one decoy and layered moyu hints", () => {
   for (const scene of scenes) {
     assert.ok(scene.title);
     assert.ok(scene.body);
-    assert.ok(scene.choices.length >= 1);
+    assert.equal(scene.choices.length, 2);
+    assert.equal(scene.choices.filter((choice) => choice.isDecoy).length, 1);
     assert.equal(scene.hints.length, 3);
+  }
+});
+
+test("main path hotspots match the simplified two-gift route", () => {
+  const expectedMainChoices = {
+    entrance: "rain-card",
+    "courtyard-pond": "courtyard-lantern",
+    "living-room": "tea-cups",
+    bedroom: "to-main-gift",
+  };
+
+  for (const [sceneId, choiceId] of Object.entries(expectedMainChoices)) {
+    const scene = scenes.find((item) => item.id === sceneId);
+    const mainChoices = scene.choices.filter((choice) => !choice.isDecoy);
+
+    assert.equal(mainChoices.length, 1);
+    assert.equal(mainChoices[0].id, choiceId);
   }
 });
 
@@ -182,15 +200,14 @@ test("bedroom asks player to find the physical handwritten card", () => {
   const bedroom = scenes.find((scene) => scene.id === "bedroom");
 
   assert.ok(bedroom);
-  assert.equal(bedroom.choices.length, 1);
-  assert.equal(bedroom.choices[0].id, "to-main-gift");
+  assert.equal(bedroom.choices.some((choice) => choice.id === "to-main-gift"), true);
   assert.match(bedroom.completionText, /手边|床边|纸/);
   assert.match(bedroom.puzzlePrompt, /小木盒/);
 });
 
-test("living room and window copy avoid photo frame objects", () => {
+test("living room copy avoids photo frame objects", () => {
   const sceneText = scenes
-    .filter((scene) => ["living-room", "window"].includes(scene.id))
+    .filter((scene) => scene.id === "living-room")
     .map((scene) => [
       scene.body,
       scene.puzzlePrompt,
@@ -208,21 +225,18 @@ test("hotspot coordinates match the refreshed scene images", () => {
   const appSource = readFileSync(new URL("../src/app.js", import.meta.url), "utf8");
 
   const expectedCoordinates = [
-    '"umbrella-charm": { x: 76, y: 60 }',
-    '"paw-prints": { x: 61, y: 82 }',
     '"rain-card": { x: 58, y: 47 }',
-    '"tea-cups": { x: 27, y: 79 }',
-    '"moyu-bed": { x: 80, y: 78 }',
-    '"lamp-direction": { x: 8, y: 52 }',
-    '"paper-note": { x: 29, y: 84 }',
-    '"window-envelope": { x: 39, y: 84 }',
-    '"outside-light": { x: 25, y: 55 }',
+    '"tea-cups": { x: 28, y: 78 }',
+    '"moyu-bed": { x: 77, y: 76 }',
     '"courtyard-lantern": { x: 17, y: 35 }',
     '"courtyard-bridge": { x: 63, y: 62 }',
     '"courtyard-moon": { x: 68, y: 10 }',
     '"to-main-gift": { x: 84, y: 68 }',
-    'data-x="54"',
-    'data-y="74"',
+    '"bedroom-card": { x: 66, y: 34 }',
+    'data-x="68"',
+    'data-y="10"',
+    "inspectedChoice.isDecoy",
+    "这好像只是摸鱼故意留下的岔路。",
   ];
 
   for (const coordinate of expectedCoordinates) {
@@ -277,8 +291,7 @@ test("main scene completion copy carries the four required digit clues", () => {
     entrance: ["一个圆", "七字折角"],
     "courtyard-pond": ["出现两遍"],
     "living-room": ["五月的开头"],
-    window: ["两个相同的小数"],
-    bedroom: ["八个空格"],
+    bedroom: ["两个相同的小数", "八个空格"],
   };
 
   for (const [sceneId, snippets] of Object.entries(required)) {
@@ -368,6 +381,19 @@ test("app preloads visual and audio assets when opened", () => {
   assert.match(appSource, /ticket\.png/);
   assert.match(appSource, /moyu-brown-cocker-dog-transparent\.png/);
   assert.match(appSource, /bgm\.mp3/);
+});
+
+test("window scene is removed from route, content, app assets, and hotspots", () => {
+  const appSource = readFileSync(new URL("../src/app.js", import.meta.url), "utf8");
+  const stateSource = readFileSync(new URL("../src/state.js", import.meta.url), "utf8");
+  const contentSource = readFileSync(new URL("../src/content.js", import.meta.url), "utf8");
+
+  assert.equal(scenes.some((scene) => scene.id === "window"), false);
+  assert.equal(stateSource.includes('"window"'), false);
+  assert.equal(contentSource.includes('id: "window"'), false);
+  assert.equal(appSource.includes("rain-garden-window-room.png"), false);
+  assert.equal(appSource.includes("paper-note"), false);
+  assert.equal(appSource.includes("window-envelope"), false);
 });
 
 test("source no longer exposes the old three ending structure", () => {
