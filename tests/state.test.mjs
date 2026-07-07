@@ -337,7 +337,7 @@ test("main scene completion copy carries the four required digit clues", () => {
     entrance: ["一个圆", "七字折角"],
     "courtyard-pond": ["出现两遍"],
     "living-room": ["五月的开头"],
-    bedroom: ["两个相同的小数", "八个空格"],
+    bedroom: ["一对相同的折痕", "两个小小的弯钩", "八个空格"],
   };
 
   for (const [sceneId, snippets] of Object.entries(required)) {
