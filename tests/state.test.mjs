@@ -273,6 +273,16 @@ test("mobile scene UI supports smooth swipe panning without buttons", () => {
   assert.match(styles, /transition:\s*background-position/);
 });
 
+test("scene choice feedback updates dialog without rebuilding the scene", () => {
+  const appSource = readFileSync(new URL("../src/app.js", import.meta.url), "utf8");
+
+  assert.match(appSource, /function renderDialog/);
+  assert.match(appSource, /function updateSceneDialog/);
+  assert.ok(appSource.includes('document.querySelector(".dialog")?.outerHTML = renderDialog(scene);'));
+  assert.match(appSource, /updateSceneDialog\(getCurrentScene\(\)\)/);
+  assert.match(appSource, /clearInspectedChoice/);
+});
+
 test("final gift box requires unified eight digit clue and handwritten card prompt", () => {
   const appSource = readFileSync(new URL("../src/app.js", import.meta.url), "utf8");
 

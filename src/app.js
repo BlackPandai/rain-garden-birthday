@@ -80,7 +80,7 @@ function setState(nextState) {
 
 function clearInspectedChoice() {
   inspectedChoice = null;
-  render();
+  updateSceneDialog(getCurrentScene());
 }
 
 function isMobilePanEnabled() {
@@ -133,6 +133,20 @@ function renderIntro() {
 }
 
 function renderScene(scene) {
+  app.innerHTML = `
+    <section class="screen point-click point-click--${scene.id}" data-scene-id="${scene.id}" style="--scene-image: url('${sceneImages[scene.id]}');">
+      <div class="painted-scene" aria-hidden="true"></div>
+      <div class="scene-vignette" aria-hidden="true"></div>
+      ${renderHotspots(scene)}
+      ${renderEggHotspot(scene)}
+      ${renderDialog(scene)}
+    </section>
+  `;
+
+  requestAnimationFrame(syncSceneLayout);
+}
+
+function renderDialog(scene) {
   const feedback = inspectedChoice
     ? `${inspectedChoice.detail} ${scene.completionText}`
     : scene.body;
@@ -144,25 +158,21 @@ function renderScene(scene) {
     ? '<div class="actions"><button class="button" type="button" data-action="continue-scene">继续跟上摸鱼</button></div>'
     : "";
 
-  app.innerHTML = `
-    <section class="screen point-click point-click--${scene.id}" data-scene-id="${scene.id}" style="--scene-image: url('${sceneImages[scene.id]}');">
-      <div class="painted-scene" aria-hidden="true"></div>
-      <div class="scene-vignette" aria-hidden="true"></div>
-      ${renderHotspots(scene)}
-      ${renderEggHotspot(scene)}
-      <article class="card dialog ${dialogClass}">
-        <img class="moyu-avatar" src="${moyuImage}" alt="摸鱼" />
-        <div class="dialog-copy">
-          <p class="eyebrow">${scene.eyebrow}</p>
-          <p id="feedback">${feedback}</p>
-          <p class="moyu">${inspectedChoice ? choiceNote : scene.puzzlePrompt}</p>
-          ${actionMarkup}
-        </div>
-      </article>
-    </section>
+  return `
+    <article class="card dialog ${dialogClass}">
+      <img class="moyu-avatar" src="${moyuImage}" alt="摸鱼" />
+      <div class="dialog-copy">
+        <p class="eyebrow">${scene.eyebrow}</p>
+        <p id="feedback">${feedback}</p>
+        <p class="moyu">${inspectedChoice ? choiceNote : scene.puzzlePrompt}</p>
+        ${actionMarkup}
+      </div>
+    </article>
   `;
+}
 
-  requestAnimationFrame(syncSceneLayout);
+function updateSceneDialog(scene) {
+  document.querySelector(".dialog")?.outerHTML = renderDialog(scene);
 }
 
 function renderHotspots(scene) {
@@ -538,7 +548,7 @@ app.addEventListener("click", (event) => {
   if (choiceButton) {
     const scene = getCurrentScene();
     inspectedChoice = scene.choices.find((item) => item.id === choiceButton.dataset.choiceId);
-    render();
+    updateSceneDialog(scene);
     return;
   }
 
