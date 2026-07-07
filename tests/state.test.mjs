@@ -175,7 +175,7 @@ test("main path hotspots match the simplified two-gift route", () => {
   const expectedMainChoices = {
     entrance: "rain-card",
     "courtyard-pond": "courtyard-lantern",
-    "living-room": "tea-cups",
+    "living-room": "lamp-direction",
     bedroom: "to-main-gift",
   };
 
@@ -226,16 +226,17 @@ test("hotspot coordinates match the refreshed scene images", () => {
 
   const expectedCoordinates = [
     '"rain-card": { x: 58, y: 47 }',
-    '"tea-cups": { x: 28, y: 78 }',
+    '"lamp-direction": { x: 17, y: 47 }',
     '"moyu-bed": { x: 77, y: 76 }',
     '"courtyard-lantern": { x: 17, y: 35 }',
     '"courtyard-bridge": { x: 63, y: 62 }',
     '"courtyard-moon": { x: 68, y: 10 }',
-    '"to-main-gift": { x: 84, y: 68 }',
-    '"bedroom-card": { x: 66, y: 34 }',
+    '"to-main-gift": { x: 82, y: 73 }',
+    '"bedroom-card": { x: 75, y: 37 }',
     'data-x="68"',
     'data-y="10"',
     "inspectedChoice.isDecoy",
+    "dialog--decoy",
     "这好像只是摸鱼故意留下的岔路。",
   ];
 
@@ -328,6 +329,7 @@ test("app renders a single main gift instead of three endings", () => {
 
 test("courtyard egg gift is gated by main gift state in render and click handling", () => {
   const appSource = readFileSync(new URL("../src/app.js", import.meta.url), "utf8");
+  const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
   assert.match(appSource, /renderEggHotspot/);
   assert.match(appSource, /canOpenEggGift\(state\)/);
@@ -335,6 +337,10 @@ test("courtyard egg gift is gated by main gift state in render and click handlin
   assert.match(appSource, /unlockEggGift/);
   assert.match(appSource, /renderTicketModal/);
   assert.match(appSource, /eggGift\.image/);
+  assert.match(styles, /@keyframes\s+ticket-card-pop/);
+  assert.match(styles, /@keyframes\s+ticket-backdrop-fade/);
+  assert.match(styles, /animation:\s*ticket-card-pop/);
+  assert.match(styles, /animation:\s*ticket-backdrop-fade/);
 });
 
 test("ticket image uses the provided PNG asset and is sized for the modal", () => {

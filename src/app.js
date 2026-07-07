@@ -50,7 +50,7 @@ const hotspotPoints = {
     "rain-card": { x: 58, y: 47 },
   },
   "living-room": {
-    "tea-cups": { x: 28, y: 78 },
+    "lamp-direction": { x: 17, y: 47 },
     "moyu-bed": { x: 77, y: 76 },
   },
   "courtyard-pond": {
@@ -59,8 +59,8 @@ const hotspotPoints = {
     "courtyard-moon": { x: 68, y: 10 },
   },
   bedroom: {
-    "to-main-gift": { x: 84, y: 68 },
-    "bedroom-card": { x: 66, y: 34 },
+    "to-main-gift": { x: 82, y: 73 },
+    "bedroom-card": { x: 75, y: 37 },
   },
 };
 
@@ -131,6 +131,9 @@ function renderScene(scene) {
   const feedback = inspectedChoice
     ? `${inspectedChoice.detail} ${scene.completionText}`
     : scene.body;
+  const dialogClass = inspectedChoice
+    ? (inspectedChoice.isDecoy ? "dialog--compact dialog--decoy" : "dialog--expanded")
+    : "dialog--compact";
   const choiceNote = inspectedChoice?.isDecoy
     ? "这好像只是摸鱼故意留下的岔路。再看看真正有回应的地方。"
     : "摸鱼轻轻甩了甩耳朵，像是在催你继续。";
@@ -144,7 +147,7 @@ function renderScene(scene) {
       <div class="scene-vignette" aria-hidden="true"></div>
       ${renderHotspots(scene)}
       ${renderEggHotspot(scene)}
-      <article class="card dialog ${inspectedChoice ? "dialog--expanded" : "dialog--compact"}">
+      <article class="card dialog ${dialogClass}">
         <img class="moyu-avatar" src="${moyuImage}" alt="摸鱼" />
         <div class="dialog-copy">
           <p class="eyebrow">${scene.eyebrow}</p>
