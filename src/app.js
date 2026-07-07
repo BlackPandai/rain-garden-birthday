@@ -172,7 +172,12 @@ function renderDialog(scene) {
 }
 
 function updateSceneDialog(scene) {
-  document.querySelector(".dialog")?.outerHTML = renderDialog(scene);
+  const dialog = document.querySelector(".dialog");
+  if (!dialog) {
+    return;
+  }
+
+  dialog.outerHTML = renderDialog(scene);
 }
 
 function renderHotspots(scene) {

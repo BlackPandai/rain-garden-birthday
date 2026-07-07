@@ -278,7 +278,10 @@ test("scene choice feedback updates dialog without rebuilding the scene", () => 
 
   assert.match(appSource, /function renderDialog/);
   assert.match(appSource, /function updateSceneDialog/);
-  assert.ok(appSource.includes('document.querySelector(".dialog")?.outerHTML = renderDialog(scene);'));
+  assert.match(appSource, /const dialog = document\.querySelector\("\.dialog"\)/);
+  assert.match(appSource, /if \(!dialog\)/);
+  assert.match(appSource, /dialog\.outerHTML = renderDialog\(scene\)/);
+  assert.equal(appSource.includes('?.outerHTML ='), false);
   assert.match(appSource, /updateSceneDialog\(getCurrentScene\(\)\)/);
   assert.match(appSource, /clearInspectedChoice/);
 });
