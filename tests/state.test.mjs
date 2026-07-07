@@ -175,7 +175,7 @@ test("main path hotspots match the simplified two-gift route", () => {
   const expectedMainChoices = {
     entrance: "rain-card",
     "courtyard-pond": "courtyard-lantern",
-    "living-room": "lamp-direction",
+    "living-room": "tea-cups",
     bedroom: "to-main-gift",
   };
 
@@ -226,7 +226,7 @@ test("hotspot coordinates match the refreshed scene images", () => {
 
   const expectedCoordinates = [
     '"rain-card": { x: 58, y: 47 }',
-    '"lamp-direction": { x: 17, y: 47 }',
+    '"tea-cups": { x: 28, y: 78 }',
     '"moyu-bed": { x: 77, y: 76 }',
     '"courtyard-lantern": { x: 17, y: 35 }',
     '"courtyard-bridge": { x: 63, y: 62 }',
@@ -236,7 +236,7 @@ test("hotspot coordinates match the refreshed scene images", () => {
     'data-x="68"',
     'data-y="10"',
     "inspectedChoice.isDecoy",
-    "dialog--decoy",
+    "clearInspectedChoice",
     "这好像只是摸鱼故意留下的岔路。",
   ];
 
@@ -400,6 +400,8 @@ test("window scene is removed from route, content, app assets, and hotspots", ()
   assert.equal(appSource.includes("rain-garden-window-room.png"), false);
   assert.equal(appSource.includes("paper-note"), false);
   assert.equal(appSource.includes("window-envelope"), false);
+  assert.equal(appSource.includes("窗边"), false);
+  assert.match(appSource, /纸角一双/);
 });
 
 test("source no longer exposes the old three ending structure", () => {

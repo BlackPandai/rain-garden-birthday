@@ -50,7 +50,7 @@ const hotspotPoints = {
     "rain-card": { x: 58, y: 47 },
   },
   "living-room": {
-    "lamp-direction": { x: 17, y: 47 },
+    "tea-cups": { x: 28, y: 78 },
     "moyu-bed": { x: 77, y: 76 },
   },
   "courtyard-pond": {
@@ -75,6 +75,11 @@ function setState(nextState) {
   state = nextState;
   inspectedChoice = null;
   saveState(state);
+  render();
+}
+
+function clearInspectedChoice() {
+  inspectedChoice = null;
   render();
 }
 
@@ -131,9 +136,7 @@ function renderScene(scene) {
   const feedback = inspectedChoice
     ? `${inspectedChoice.detail} ${scene.completionText}`
     : scene.body;
-  const dialogClass = inspectedChoice
-    ? (inspectedChoice.isDecoy ? "dialog--compact dialog--decoy" : "dialog--expanded")
-    : "dialog--compact";
+  const dialogClass = inspectedChoice ? "dialog--expanded" : "dialog--compact";
   const choiceNote = inspectedChoice?.isDecoy
     ? "这好像只是摸鱼故意留下的岔路。再看看真正有回应的地方。"
     : "摸鱼轻轻甩了甩耳朵，像是在催你继续。";
@@ -311,7 +314,7 @@ function renderBoxGate() {
         <div class="dialog-copy">
           <p class="eyebrow">小木盒</p>
           <h1>雨里的数字</h1>
-          <p>盒盖没有立刻打开，只从缝隙里漏出一点暖光。纸上留着几句残影：门边一枚，水里一枚，暖处一枚，窗边一双。</p>
+          <p>盒盖没有立刻打开，只从缝隙里漏出一点暖光。纸上留着几句残影：门边一枚，水里一枚，暖处一枚，纸角一双。</p>
           <p class="moyu">输入八位线索</p>
           <div class="box-code-row">
             <input
@@ -540,8 +543,13 @@ app.addEventListener("click", (event) => {
   }
 
   if (!actionButton) {
+    if (inspectedChoice) {
+      clearInspectedChoice();
+      return;
+    }
+
     const feedback = document.querySelector("#feedback");
-    if (feedback && !inspectedChoice) {
+    if (feedback) {
       feedback.textContent = "摸鱼在旁边嗅了嗅，这里暂时没有特别的东西。";
     }
     return;
