@@ -47,7 +47,7 @@ const PRELOAD_IMAGE_SOURCES = [
 const hotspotPoints = {
   entrance: {
     "umbrella-charm": { x: 76, y: 60 },
-    "rain-card": { x: 58, y: 47 },
+    "rain-card": { x: 60, y: 54 },
   },
   "living-room": {
     "tea-cups": { x: 28, y: 78 },
@@ -59,8 +59,8 @@ const hotspotPoints = {
     "courtyard-moon": { x: 68, y: 10 },
   },
   bedroom: {
-    "to-main-gift": { x: 82, y: 73 },
-    "bedroom-card": { x: 75, y: 37 },
+    "to-main-gift": { x: 87, y: 65 },
+    "bedroom-card": { x: 78, y: 46 },
   },
 };
 

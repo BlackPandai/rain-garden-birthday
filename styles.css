@@ -265,11 +265,11 @@ p {
 .scene-hotspot {
   position: absolute;
   z-index: 6;
-  width: 5.8rem;
-  height: 5.8rem;
+  width: 8.7rem;
+  height: 8.7rem;
   transform: translate(-50%, -50%);
   border: 0;
-  border-radius: 1.25rem;
+  border-radius: 1.8rem;
   background: transparent;
   color: var(--text);
   cursor: pointer;
@@ -279,8 +279,8 @@ p {
   position: absolute;
   inset: 1.6rem;
   border-radius: 50%;
-  background: rgba(240, 217, 157, 0.24);
-  box-shadow: 0 0 1.4rem rgba(240, 217, 157, 0.45);
+  background: transparent;
+  box-shadow: none;
 }
 
 .scene-hotspot strong {
@@ -306,8 +306,8 @@ p {
 }
 
 .scene-hotspot--egg span {
-  background: rgba(111, 210, 255, 0.28);
-  box-shadow: 0 0 1.7rem rgba(111, 210, 255, 0.58);
+  background: transparent;
+  box-shadow: none;
 }
 
 .ending-scene {
@@ -582,8 +582,8 @@ p {
   }
 
   .scene-hotspot {
-    width: 4.8rem;
-    height: 4.8rem;
+    width: 7.2rem;
+    height: 7.2rem;
   }
 
 }

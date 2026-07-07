@@ -246,14 +246,14 @@ test("hotspot coordinates match the refreshed scene images", () => {
   const appSource = readFileSync(new URL("../src/app.js", import.meta.url), "utf8");
 
   const expectedCoordinates = [
-    '"rain-card": { x: 58, y: 47 }',
+    '"rain-card": { x: 60, y: 54 }',
     '"tea-cups": { x: 28, y: 78 }',
     '"moyu-bed": { x: 77, y: 76 }',
     '"courtyard-lantern": { x: 17, y: 35 }',
     '"courtyard-bridge": { x: 63, y: 62 }',
     '"courtyard-moon": { x: 68, y: 10 }',
-    '"to-main-gift": { x: 82, y: 73 }',
-    '"bedroom-card": { x: 75, y: 37 }',
+    '"to-main-gift": { x: 87, y: 65 }',
+    '"bedroom-card": { x: 78, y: 46 }',
     'data-x="68"',
     'data-y="10"',
     "inspectedChoice.isDecoy",
@@ -264,6 +264,17 @@ test("hotspot coordinates match the refreshed scene images", () => {
   for (const coordinate of expectedCoordinates) {
     assert.ok(appSource.includes(coordinate), `missing coordinate ${coordinate}`);
   }
+});
+
+test("hotspot targets are larger, transparent, and center aligned", () => {
+  const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+  assert.match(styles, /\.scene-hotspot\s*\{[^}]*width:\s*8\.7rem;[^}]*height:\s*8\.7rem;[^}]*transform:\s*translate\(-50%, -50%\);/s);
+  assert.match(styles, /\.scene-hotspot span\s*\{[^}]*background:\s*transparent;[^}]*box-shadow:\s*none;/s);
+  assert.match(styles, /\.scene-hotspot--egg span\s*\{[^}]*background:\s*transparent;[^}]*box-shadow:\s*none;/s);
+  assert.match(styles, /@media \(max-width: 430px\)\s*\{[\s\S]*?\.scene-hotspot\s*\{[^}]*width:\s*7\.2rem;[^}]*height:\s*7\.2rem;/);
+  assert.equal(styles.includes("rgba(118, 134, 128, 0.16)"), false);
+  assert.equal(styles.includes("rgba(116, 146, 154, 0.16)"), false);
 });
 
 test("desktop scene UI does not render horizontal view controls", () => {
