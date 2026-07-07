@@ -107,18 +107,18 @@ button {
   top: 0.75rem;
   right: auto;
   bottom: auto;
-  width: min(22rem, calc(100vw - 1.5rem));
-  max-width: 22rem;
-  grid-template-columns: 3.15rem 1fr;
-  gap: 0.65rem;
+  width: min(16rem, calc(100vw - 1.5rem));
+  max-width: 16rem;
+  grid-template-columns: 2.45rem 1fr;
+  gap: 0.45rem;
   align-items: center;
-  padding: 0.58rem 0.7rem;
-  border-radius: 1rem;
+  padding: 0.38rem 0.52rem;
+  border-radius: 0.82rem;
 }
 
 .dialog--compact .moyu-avatar {
-  width: 3.15rem;
-  height: 3.15rem;
+  width: 2.45rem;
+  height: 2.45rem;
 }
 
 .dialog--compact .eyebrow {
@@ -146,8 +146,8 @@ button {
   margin: 0;
   border-left: 0;
   padding-left: 0;
-  font-size: 0.84rem;
-  line-height: 1.35;
+  font-size: 0.78rem;
+  line-height: 1.25;
 }
 
 .dialog--compact .actions {
@@ -567,8 +567,8 @@ p {
   }
 
   .dialog--compact {
-    grid-template-columns: 3rem 1fr;
-    gap: 0.55rem;
+    grid-template-columns: 2.45rem 1fr;
+    gap: 0.45rem;
   }
 
   .moyu-avatar {
@@ -577,8 +577,8 @@ p {
   }
 
   .dialog--compact .moyu-avatar {
-    width: 3rem;
-    height: 3rem;
+    width: 2.45rem;
+    height: 2.45rem;
   }
 
   .scene-hotspot {

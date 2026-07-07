@@ -4,7 +4,7 @@ export const scenes = [
     eyebrow: "玄关",
     title: "湿伞与爪印",
     body: "你推开门，雨声被留在身后。门垫上有一串湿漉漉的小爪印，摸鱼把一张卡片压在伞柄下。",
-    puzzlePrompt: "先看哪一个线索？",
+    puzzlePrompt: "请探索场景中的线索",
     choices: [
       {
         id: "rain-card",
@@ -31,7 +31,7 @@ export const scenes = [
     eyebrow: "客厅",
     title: "暖灯与影子",
     body: "客厅只亮着一盏暖灯。茶盏、抱枕和摸鱼的小窝都被摆成了奇怪的角度，墙上影子像一句还没拼好的话。",
-    puzzlePrompt: "你想调整哪件东西？",
+    puzzlePrompt: "请探索场景中的线索",
     choices: [
       {
         id: "tea-cups",
@@ -58,7 +58,7 @@ export const scenes = [
     eyebrow: "庭院与池塘",
     title: "倒影与石径",
     body: "庭院里雨声更清楚。池塘倒映着廊灯，石径上有几处被摸鱼踩湿的脚印。",
-    puzzlePrompt: "你先靠近哪里？",
+    puzzlePrompt: "请探索场景中的线索",
     choices: [
       {
         id: "courtyard-lantern",
@@ -85,7 +85,7 @@ export const scenes = [
     eyebrow: "卧室",
     title: "灯下的小秘密",
     body: "卧室里没有谜案，只有一盏很暖的灯。前面所有雨声、爪印和卡片，终于拼成一句没有说出口的话。",
-    puzzlePrompt: "最后靠近小木盒。",
+    puzzlePrompt: "请探索场景中的线索",
     choices: [
       {
         id: "to-main-gift",

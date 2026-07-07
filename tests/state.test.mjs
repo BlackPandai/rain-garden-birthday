@@ -161,6 +161,27 @@ test("content defines all route scenes", () => {
   );
 });
 
+test("scene top prompt is short and consistent", () => {
+  const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+
+  assert.equal(
+    scenes.every((scene) => scene.puzzlePrompt === "请探索场景中的线索"),
+    true,
+  );
+  assert.equal(
+    scenes.some((scene) =>
+      ["先看哪一个线索？", "你想调整哪件东西？", "你先靠近哪里？", "最后靠近小木盒。"].includes(
+        scene.puzzlePrompt,
+      ),
+    ),
+    false,
+  );
+  assert.match(styles, /width:\s*min\(16rem,\s*calc\(100vw - 1\.5rem\)\)/);
+  assert.match(styles, /grid-template-columns:\s*2\.45rem 1fr/);
+  assert.match(styles, /padding:\s*0\.38rem 0\.52rem/);
+  assert.match(styles, /\.dialog--compact \.moyu-avatar\s*\{\s*width:\s*2\.45rem;\s*height:\s*2\.45rem;/);
+});
+
 test("each scene has two choices with one decoy and layered moyu hints", () => {
   for (const scene of scenes) {
     assert.ok(scene.title);
@@ -202,7 +223,7 @@ test("bedroom asks player to find the physical handwritten card", () => {
   assert.ok(bedroom);
   assert.equal(bedroom.choices.some((choice) => choice.id === "to-main-gift"), true);
   assert.match(bedroom.completionText, /手边|床边|纸/);
-  assert.match(bedroom.puzzlePrompt, /小木盒/);
+  assert.equal(bedroom.puzzlePrompt, "请探索场景中的线索");
 });
 
 test("living room copy avoids photo frame objects", () => {
