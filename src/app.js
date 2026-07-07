@@ -344,6 +344,9 @@ function renderBoxGate() {
             <button class="button" type="button" data-action="submit-box-code">打开小木盒</button>
           </div>
           <p class="feedback" id="box-feedback">${feedback}</p>
+          <div class="actions">
+            <button class="button secondary" type="button" data-action="review-clues">再去看看线索</button>
+          </div>
         </div>
       </article>
     </section>
@@ -618,6 +621,12 @@ app.addEventListener("click", (event) => {
     };
     saveState(state);
     renderBoxGate();
+    return;
+  }
+
+  if (action === "review-clues") {
+    isBoxGateOpen = false;
+    render();
     return;
   }
 

@@ -327,6 +327,10 @@ test("final gift box requires unified eight digit clue and handwritten card prom
   assert.match(appSource, /被雨等到的人/);
   assert.match(appSource, /一路跟回家的小尾巴/);
   assert.match(appSource, /data-action="submit-box-code"/);
+  assert.match(appSource, /再去看看线索/);
+  assert.match(appSource, /data-action="review-clues"/);
+  assert.match(appSource, /if \(action === "review-clues"\)/);
+  assert.match(appSource, /isBoxGateOpen = false;\s*render\(\);/);
   assert.equal(appSource.includes("1 / 3"), false);
   assert.equal(appSource.includes("/ 3"), false);
   assert.equal(appSource.includes("隐藏结局"), false);
